@@ -1,16 +1,20 @@
 import express from "express";
-import cors from "cors"
-const PORT = process.env.PORT || 3000;
 const app = express();
+import cors from "cors"
+const PORT = process.env.PORT || 5000;
+
 
 // Routes imports
-import loginRoute from "./routes/loginRoute.js"
+import signupRoute from "./routes/usersRoute.js";
+import  adsRoute from "./routes/adsRoute.js"
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({extended: true }));
 
 //Routes
-app.use("/api/login", loginRoute);
+app.use("/api/user", signupRoute);
+app.use("/api/ads", adsRoute)
 
 
 
