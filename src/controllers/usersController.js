@@ -34,27 +34,42 @@ export const getUser = async(req, res) => {
            }
            
 
-           const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+           const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
            
-           const jwt = await new SignJWT({ user_id: 3 })
-           .setProtectedHeader({ alg:'HS256' })
-           .setIssuedAt()
-           .setIssuer('https://api.expressbackend.com')
-           .setAudience('tonmame')
-           .setExpirationTime('5m')
-           .sign(secret)
+           const jwt = await new SignJWT({ user_id: user[0].user_id })
+              .setProtectedHeader({ alg: 'HS256' })
+              .setIssuedAt()
+              .setIssuer('https://api-tonmame.onrender.com') // Update issuer to your actual domain
+              .setAudience('https://tonmame.netlify.app') // Set audience to frontend domain
+              .setExpirationTime('1h')
+              .sign(secret);
 
            if(!jwt){
              throw new Error("Something happened retry!");
            }
-           
-           res.cookie('access_token', jwt , { httpOnly: false, secure: true, maxAge: 300000, sameSite: 'strict' });
-           
 
-          res.status(200).json({isValid: checkPassword, jwt}) 
+           //After a successful login, fetch data
+           const getUserData = await sql`
+                select users.firstname, users.lastname, avatars.imageUrl FROM users
+                FULL JOIN avatars ON users.user_id = avatars.user_id
+                WHERE users.user_id = ${ user[0].user_id }
+           `
+           if(!getUserData){
+            throw new Error("Error getting user data!");
+          }
+           
+          res.cookie('access_token', jwt, {
+               httpOnly: true,
+               secure: true,
+               sameSite: 'none', // Essential for cross-domain cookies
+               maxAge: 60 * 60 * 1000, // 1 hour expiration
+               path: '/',
+             });
+           
+           res.status(200).json({ data: getUserData, isValidUser: true }) 
       
       } catch (e) {
-          return res.status(404).json({ message: e.message });
+          return res.status(404).json({ message: e.message, isValidUser: false });
       }
 
 }
@@ -108,4 +123,16 @@ export const createUser = async(req, res) => {
        } catch (e) {   
             return res.status(409).json({ message: e.message })
        }     
+}
+
+
+
+//Logic for logging the usr out 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const signOutUser = async(req, res)=> {
+     res.cookie('access_token', " ", { httpOnly: true, secure: true, maxAge: 0, sameSite: 'strict' });        
+     res.status(200).json({ isValidUser: false }) 
 }
