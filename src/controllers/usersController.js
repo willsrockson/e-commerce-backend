@@ -3,6 +3,61 @@ import bcrypt from "bcryptjs";
 import { SignJWT } from "jose"
 import "dotenv/config"
 
+
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const recreateSessionForAlreadyLoginUsers = async(req, res)=>{
+      const userID = req.userData.userID.user_id; // get the ID of the logged in user
+
+      console.log("Recreate visited");
+      
+     try {
+          
+          //After a successful login, fetch data
+            const getUserData = await sql`
+            select users.firstname, users.lastname, avatars.imageUrl FROM users
+            JOIN avatars ON users.user_id = avatars.user_id
+            WHERE users.user_id = ${ userID }
+       `
+          if(!getUserData){
+          throw new Error("Error getting user data!");
+          }
+        
+       res.status(200).json({ data: getUserData, isValidUser: true }) 
+          
+     } catch (err) {
+          return res.status(404).json({ data:[] , isValidUser: false });
+     }
+
+}
+
+
+
+
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const authState = async(req, res)=>{
+    try {  
+          res.status(200).json({isValidUser: true})
+     
+    } catch (error) {
+        res.status(401).json({message: error.message})
+    }
+}
+
+
+
+
+
+
+
+
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -41,7 +96,7 @@ export const getUser = async(req, res) => {
               .setIssuedAt()
               .setIssuer('https://api-tonmame.onrender.com') // Update issuer to your actual domain
               .setAudience('https://tonmame.netlify.app') // Set audience to frontend domain
-              .setExpirationTime('1h')
+              .setExpirationTime('7d')
               .sign(secret);
 
            if(!jwt){
@@ -62,7 +117,7 @@ export const getUser = async(req, res) => {
                httpOnly: true,
                secure: true,
                sameSite: 'none', // Essential for cross-domain cookies
-               maxAge: 60 * 60 * 1000, // 1 hour expiration
+               maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
              });
            
@@ -94,7 +149,7 @@ export const createUser = async(req, res) => {
       if(!data.email || !data.password || !data.firstName || !data.lastName || !data.phone){
          return res.status(400).json({message: "Couldn't register user."});
       }
-      if(data.password.length < 5) return res.status(400).json({message: "Password must be more than 5 characters."});
+      if(data.password.length < 6) return res.status(400).json({message: "Password must be more than 5 characters."});
       if(data.phone.length < 10 || isNaN(data.phone)) return res.status(400).json({message: "Phone must be numbers and 10 digits."});
       if(data.phone.length > 10 || isNaN(data.phone)) return res.status(400).json({message: "Phone number cannot be more than 10 digits."}) ;   
            

@@ -1,4 +1,3 @@
-import { log } from "console";
 import supabase from "../config/supabaseConn.js";
 /**
  * @param {import('express').Request} req
@@ -7,19 +6,24 @@ import supabase from "../config/supabaseConn.js";
 import * as fs from "fs"
 export const postAds = async (req, res)=>{
      try{
-
+        const userID = req.userData.userID.user_id; // get the ID of the logged in user
         const files = req.files;
-        const texts = req.body;
+        const adsInformation = req.body;
 
-        console.log(texts);
-        
+          
+        if(!userID){
+            throw new Error("User not found.")
+        }
+        if(!adsInformation.category){
+            throw new Error("Category not found refresh & retry.")
+        }
          
         // Checks for no file upload and limit
         if (!files || files.length === 0) {
-            return res.status(400).json({ error: 'No files provided' });
+            return res.status(400).json({ error: 'No files provided.' });
           }
         if (files.length > 7) {
-            return res.status(400).json({ error: 'Can`t upload more than 7 images' });
+            return res.status(400).json({ error: 'Can`t upload more than 7 images.' });
           }
          
           // map through each file upload it and delete the file
@@ -29,7 +33,7 @@ export const postAds = async (req, res)=>{
 
             const {data, error} = await supabase.storage
             .from('ecommerce')
-            .upload(`uploads/${Date.now()}-${file.originalname}`, fileBuffer, {
+            .upload(`ads-images/${userID}/${Date.now()}-${file.originalname}`, fileBuffer, {
                 cacheControl: '3600',
                 upsert: false
             })
@@ -55,8 +59,39 @@ export const postAds = async (req, res)=>{
               return Url;
         })
         const uRl = await Promise.all(getAllUrl);
+        
+        // Post for Phones
+        if(adsInformation.category === "Mobile Phones"){
+            
+            
+            const {error} = await supabase
+            .from('mobilephones')
+            .insert({
+                brand : adsInformation.brand, 
+                model : adsInformation.model,
+                region: adsInformation.region,
+                town: adsInformation.town, 
+                color : adsInformation.color, 
+                disk_space : adsInformation.internal_storage, 
+                ram_size : adsInformation.ram_size, 
+                exchange_possible : adsInformation.exchange_possible, 
+                price : adsInformation.price, 
+                description : adsInformation.description, 
+                title : adsInformation.title, 
+                images : uRl?.map(url => url.publicUrl), 
+                negotiation : adsInformation.negotiable, 
+                condition : adsInformation.condition, 
+                user_id : userID 
+            })
 
-        //res.status(200).json({links: uRl});
+            if(error){
+                console.log("Inserting Error:", error.message);
+                
+                throw new Error(error.message)
+            }
+            
+        }
+        
         res.status(200).json({message: "Post has been published"});
        
 
@@ -68,4 +103,135 @@ export const postAds = async (req, res)=>{
      }
     
    
+}
+
+
+
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getAdvertsPostedByUser = async (req, res) => {
+    const userID = req.userData.userID.user_id;
+    const { categoryvalue } =  req.query
+
+    try {
+         
+        if(categoryvalue === "Laptops & Computers"){
+            
+        }
+
+        const {data, error} = await supabase
+        .from('mobilephones')
+        .select("*")
+        .eq("user_id", userID )
+
+        if(error) throw error
+
+        res.status(200).json(data)
+        
+    } catch (error) {
+        console.log(error.message);   
+        res.json([])
+    }
+}
+
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const deleteSinglePost = async(req, res) =>{
+   
+    const { id } = req.params
+   
+    try {
+
+         if(!id) return
+
+        const { data, error} = await supabase
+        .from('mobilephones')
+        .select('images')
+        .eq('mobile_id', id)
+
+        if(error){
+            throw error
+        }
+        const splited = data[0].images.map( item => item.split("ecommerce/")[1]);
+
+        const {error:deleteError} = await supabase
+        .storage
+        .from('ecommerce')
+        .remove(splited)  
+        
+        if(deleteError){
+            throw deleteError
+        }
+
+        const { error: deletePhone } = await supabase
+        .from('mobilephones')
+        .delete()
+        .eq('mobile_id', id)
+
+        if(deletePhone){
+            throw deleteError
+        }
+        
+       res.status(200).json({ message: "Deleted successfully" })
+
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ errMessage: error.message })
+         
+         
+    }
+   
+
+}
+
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const decactivePost = async(req, res)=>{
+    const { id } = req.params
+
+    try {
+
+        if(!id) return
+
+        const {data, error:findError} = await supabase
+        .from('mobilephones')
+        .select('deactivated')
+        .eq("mobile_id", id)
+
+        if(findError)throw findError
+        
+        if( data[0].deactivated ){
+
+             const { error:falseError } =await supabase
+             .from('mobilephones')
+             .update({ deactivated: false })
+             .eq('mobile_id', id)
+              
+             if(falseError) throw error
+
+
+        }else if( data[0].deactivated == false ){
+            const {error:trueError} =await supabase
+             .from('mobilephones')
+             .update({ deactivated: true })
+             .eq('mobile_id', id)
+              
+             if(trueError) throw error  
+        }
+        
+       res.status(200).json({message: "Successful operation" }) 
+        
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).json({ errMessage: error.message })
+    }
 }
