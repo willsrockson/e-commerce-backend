@@ -64,7 +64,7 @@ export const postAds = async (req, res)=>{
         if(adsInformation.category === "Mobile Phones"){
             
             
-            const {error} = await supabase
+            const {error:uploadError} = await supabase
             .from('mobilephones')
             .insert({
                 brand : adsInformation.brand, 
@@ -84,10 +84,8 @@ export const postAds = async (req, res)=>{
                 user_id : userID 
             })
 
-            if(error){
-                console.log("Inserting Error:", error.message);
-                
-                throw new Error(error.message)
+            if(uploadError){
+                throw uploadError
             }
             
         }
@@ -97,9 +95,8 @@ export const postAds = async (req, res)=>{
 
 
      }catch(err){
-         console.log(err);
-         
-        return res.status(500).json({ error: 'Upload failed' });
+         console.log("From adsController", err.message ); 
+         return res.status(500).json({ error: 'Upload failed' });
      }
     
    
