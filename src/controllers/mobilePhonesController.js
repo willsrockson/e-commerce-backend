@@ -56,19 +56,17 @@ export const getEachPhoneById = async(req, res)=>{
          const getPhone = await sql`
             SELECT m.mobile_id, m.brand, m.model, m.region, m.town, m.color, m.disk_space, m.ram_size, m.exchange_possible,
             m.price, m.description, m.title, m.images, m.negotiation, m.condition, m.created_at, avatars.imageurl,
-            users.firstname, users.lastname, users.phone, users.phone2, users.isverifiedstore, users.created_at As user_created_at
+            users.storename, users.fullname, users.phone, users.phone2, users.isverifiedstore, users.created_at As user_created_at
             FROM mobilephones AS m
-            FULL JOIN avatars on avatars.user_id = m.user_id
-            FULL JOIN users on users.user_id = avatars.user_id
+            FULL JOIN users on users.user_id = m.user_id
+            FULL JOIN avatars on avatars.user_id = users.user_id
             WHERE m.mobile_id = ${id};
          `
          if(!getPhone){
             throw new Error("Phone not found")
          }
 
-         //console.log(getPhone);
          
-
          res.status(200).json(getPhone);
         
      } catch (error) {

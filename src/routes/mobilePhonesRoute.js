@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { fetchMobilePhones, getEachPhoneById } from "../controllers/dataController.js";
+import { fetchMobilePhones, getEachPhoneById } from "../controllers/mobilePhonesController.js";
 
 
 

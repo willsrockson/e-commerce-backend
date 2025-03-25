@@ -1,4 +1,6 @@
 import supabase from "../config/supabaseConn.js";
+import sharp from "sharp";
+
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -28,12 +30,17 @@ export const postAds = async (req, res)=>{
          
           // map through each file upload it and delete the file
         const uploadAdImagePromises = files.map(async(file)=>{
-            // Take the file from /uploads, and pass it to supabase
-            const fileBuffer = fs.readFileSync(file.path);
 
-            const {data, error} = await supabase.storage
+            // Take the file from /uploads, convert it and store it inside supabase storage
+            const outputBuffer = await sharp(file.path)
+              .webp({ quality: 90 })
+              .rotate()
+              .resize(1080 , 810)
+              .toBuffer();
+
+            const { data, error } = await supabase.storage
             .from('ecommerce')
-            .upload(`ads-images/${userID}/${Date.now()}-${file.originalname}`, fileBuffer, {
+            .upload(`ads-images/${userID}/${Date.now()}-${file.originalname}`, outputBuffer, {
                 cacheControl: '3600',
                 upsert: false
             })
@@ -52,7 +59,7 @@ export const postAds = async (req, res)=>{
         const results = await Promise.all(uploadAdImagePromises);
         
         const getAllUrl = results.map( async (result)=>{
-              const { data: Url } = await supabase.storage
+              const { data: Url } = supabase.storage
               .from('ecommerce')
               .getPublicUrl(result.path);
             

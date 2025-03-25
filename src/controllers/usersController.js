@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { SignJWT } from "jose"
 import "dotenv/config"
 
-
+const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
 
 /**
  * @param {import('express').Request} req
@@ -62,22 +62,22 @@ export const authState = async(req, res)=>{
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export const getUser = async(req, res) => {
+export const loginUser = async(req, res) => {
       const data = await req.body;
-
-      if(!data.email || !data.password){
+      
+      if(!data.email_phone || !data.password){
             return res.status(400).json({message: "Field cannot be empty"})
         }
 
-      if(data.password.length  < 5){
+      if(data.password.length  < 6){
             return res.status(400).json({message: "Password must be more than 5 characters."})
        }
       
       try {
             const user = await sql `
               select * from users
-              where email = ${data.email}
-            `
+              where email = ${data.email_phone} OR phone = ${data.email_phone}
+            `;
             if(!user[0]){     
               throw new Error("User doesn't exist");               
             }
@@ -88,8 +88,6 @@ export const getUser = async(req, res) => {
               throw new Error("No record match");
            }
            
-
-           const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
            
            const jwt = await new SignJWT({ user_id: user[0].user_id })
               .setProtectedHeader({ alg: 'HS256' })
@@ -105,7 +103,7 @@ export const getUser = async(req, res) => {
 
            //After a successful login, fetch data
            const getUserData = await sql`
-                select users.firstname, users.lastname, avatars.imageUrl FROM users
+                select users.storename, users.fullname, avatars.imageUrl FROM users
                 FULL JOIN avatars ON users.user_id = avatars.user_id
                 WHERE users.user_id = ${ user[0].user_id }
            `
@@ -143,11 +141,12 @@ export const getUser = async(req, res) => {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export const createUser = async(req, res) => {
+export const signUpUser = async(req, res) => {
       const data = await req.body;
 
-      if(!data.email || !data.password || !data.firstName || !data.lastName || !data.phone){
-         return res.status(400).json({message: "Couldn't register user."});
+      
+      if(!data.email || !data.password || !data.storename || !data.fullname || !data.phone){
+         return res.status(400).json({message: "Field cannot be empty"});
       }
       if(data.password.length < 6) return res.status(400).json({message: "Password must be more than 5 characters."});
       if(data.phone.length < 10 || isNaN(data.phone)) return res.status(400).json({message: "Phone must be numbers and 10 digits."});
@@ -156,29 +155,66 @@ export const createUser = async(req, res) => {
       
 
        try {
-            //checks whether user already exist
-            const checkRegistration = await sql`
-               select email,phone from users 
+         //checks whether user already exist
+         const checkRegistration = await sql`
+               select email, phone from users 
                where email = ${data.email} or phone = ${data.phone}
-            `
-            if(checkRegistration[0]){
-               throw new Error("User already exist");
-            }
-            
-            //Create account
-           const salt = await bcrypt.genSalt(Number(process.env.SALT));
-           const hash = await bcrypt.hash(data.password, salt); 
-           const creatUser = await sql`
-                 insert into users(email, pwd, firstName, lastName, phone)
-                 values(${data.email},${hash},${data.firstName},${data.lastName},${data.phone})
-            
-            `
-            res.status(201).json({message: "Account created successfully"});
+            `;
+         if (checkRegistration[0]) {
+           throw new Error("User already exist");
+         }
 
-       } catch (e) {   
-            return res.status(409).json({ message: e.message })
-       }     
+         //Create account
+         const salt = await bcrypt.genSalt(Number(process.env.SALT));
+         const hash = await bcrypt.hash(data.password, salt);
+         const creatUser = await sql`
+                 insert into users(email, pwd, storename, fullname, phone)
+                 values(${data.email},${hash},${data.storename},${data.fullname},${data.phone})
+                 RETURNING user_id   
+            `;
+         if (creatUser.length === 0) {
+           throw new Error("Couldn't login retry!");
+         }
+
+         // Generates JWT token after creating an account
+         const jwt = await new SignJWT({ user_id: creatUser[0].user_id })
+           .setProtectedHeader({ alg: "HS256" })
+           .setIssuedAt()
+           .setIssuer("https://tonmame.onrender.com")
+           .setAudience([
+             "https://tonmame.netlify.app",
+             "https://app-tonmame.onrender.com",
+           ])
+           .setExpirationTime("7d")
+           .sign(secret);
+
+         if (!jwt) {
+           throw new Error("Something happened retry!");
+         }
+ 
+         const getUserData = await sql`
+               select users.storename, users.fullname, avatars.imageUrl FROM users
+               FULL JOIN avatars ON users.user_id = avatars.user_id
+               WHERE users.user_id = ${ creatUser[0].user_id }
+             `;         
+
+        if(getUserData.length === 0) throw new Error("Sorry, couldn't sign you in!");
+         
+          res.cookie('access_token', jwt, {
+               httpOnly: true,
+               secure: true,
+               sameSite: 'none',
+               maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
+               path: '/',
+          });
+      
+          res.status(201).json({ message: "Account created successfully", data: getUserData, isValidUser: true }) 
+
+        } catch (e) {   
+            return res.status(409).json({ message: e.message, isValidUser: false });
+          }     
 }
+
 
 
 
@@ -188,6 +224,11 @@ export const createUser = async(req, res) => {
  * @param {import('express').Response} res
  */
 export const signOutUser = async(req, res)=> {
-     res.cookie('access_token', " ", { httpOnly: true, secure: true, maxAge: 0, sameSite: 'strict' });        
-     res.status(200).json({ isValidUser: false }) 
+     try {
+          res.cookie('access_token', " ", { httpOnly: true, secure: true, maxAge: 0, sameSite: 'none' });        
+          res.status(200).json({ isValidUser: false }) 
+     } catch (error) {
+          
+     }
+     
 }

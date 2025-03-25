@@ -8,7 +8,7 @@ const currentTime = new Date(Date.now()).toISOString();
 export const NewPosts = async(req, res)=>{
     
    try {
-      const get4Phones = await sql `
+      const getNewPhones = await sql `
          SELECT 
          mobilephones.mobile_id, 
          mobilephones.images, 
@@ -20,11 +20,12 @@ export const NewPosts = async(req, res)=>{
          users.isverifiedstore
          FROM mobilephones
          JOIN users ON users.user_id = mobilephones.user_id
-         ORDER BY mobilephones.created_at DESC 
+         WHERE mobilephones.deactivated != true 
+         ORDER BY mobilephones.created_at DESC
          LIMIT 8
        `
 
-   res.status(200).json([...get4Phones])
+   res.status(200).json([...getNewPhones])
       
    } catch (error) {
       res.status(401).json([])

@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5001;
 import userRoute from "./routes/usersRoute.js";
 import  adsRoute from "./routes/adsRoute.js";
 import accountRoute from "./routes/accountRoute.js";
-import dataRoute from "./routes/dataRoute.js"
+import mobilePhonesRoute from "./routes/mobilePhonesRoute.js"
 import newPostAndTrendRoute from "./routes/newPost&TrendRoute.js"
 import idVerificationRoute from "./routes/idVerificationRoute.js"
 
@@ -19,7 +19,7 @@ import authController from "./routes/ADMIN/authRoute.js"
 
 
 app.use(cors({
-    origin: ['https://tonmame.netlify.app', 'http://localhost:3000'],
+    origin: ['https://tonmame.netlify.app', 'https://app-tonmame.onrender.com'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -36,7 +36,7 @@ import { authorizationMiddleware } from "./middleware/authorizationMiddleware.js
 app.use("/api/user", userRoute);
 app.use("/api/ads", authorizationMiddleware, adsRoute);
 app.use("/api/account", authorizationMiddleware, accountRoute);
-app.use("/api/mobile", dataRoute);
+app.use("/api/mobile", mobilePhonesRoute);
 app.use("/api/homepage", newPostAndTrendRoute );
 app.use("/api/verify/", authorizationMiddleware , idVerificationRoute);
 

@@ -32,17 +32,17 @@ export const accountSettings = async (req, res) => {
 
   try {
     const fetchData = await sql`
-             SELECT firstname, lastname, phone, phone2, storeaddress, avatar_id, imageurl, avatars.updated_at
+             SELECT storename, fullname, phone, phone2, verificationstatus, 
+             storeaddress, avatar_id, imageurl, avatars.updated_at
              FROM users
              FULL JOIN avatars ON avatars.user_id = users.user_id
              WHERE users.user_id = ${userData}
         `;
-    if (!fetchData) throw new Error("No settings found");
+    if (!fetchData) throw new Error("No settings data found");
     res.status(200).json(fetchData);
   } catch (error) {
-    console.log(error.message);
-
-    //return res.status(401).json()
+    console.log("From accountSettings", error.message);
+    return res.status(401).json([])
   }
 };
 
@@ -62,14 +62,12 @@ export const updateAccountSettings = async (req, res) => {
   try {
     const userID = req.userData.userID.user_id;
     const avatarFile = req.file;
-    const { firstname, lastname, phone, phone2, storeaddress } = req.body;
-     
+    const { storename, fullname, phone, phone2, storeaddress } = req.body;
     
     if (avatarFile) {
-      const fileBuffer = fs.readFileSync(avatarFile.path);
-
-      const outputBuffer = await sharp(fileBuffer)
-        .jpeg({ quality: 80 })
+     
+      const outputBuffer = await sharp(avatarFile.path)
+        .webp({ quality: 80 })
         .rotate()
         .resize(460, 460)
         .toBuffer();
@@ -77,7 +75,7 @@ export const updateAccountSettings = async (req, res) => {
      
         const { error } = await supabase.storage
             .from('ecommerce')
-            .update(`avatars/${userID}/${ userID +".jpg" }`, outputBuffer, {
+            .update(`avatars/${userID}/${ userID +".webp" }`, outputBuffer, {
                 upsert: true
             })
             fs.unlinkSync(avatarFile.path); //Delete fiile after uploading
@@ -87,7 +85,7 @@ export const updateAccountSettings = async (req, res) => {
             const { data } = supabase
             .storage
             .from('ecommerce')
-            .getPublicUrl(`avatars/${userID}/${ userID +".jpg" }`);
+            .getPublicUrl(`avatars/${userID}/${ userID +".webp" }`);
 
              photoUrl = data.publicUrl;
 
@@ -104,15 +102,14 @@ export const updateAccountSettings = async (req, res) => {
                     VALUES(${data.publicUrl}, ${userID})
                     ` 
                 break;
-                case false:
-              
+                case false:           
                   const getSQLdata =  await sql`
                     UPDATE avatars
                     SET imageurl = ${data.publicUrl}, updated_at = ${updatedAt}
                     WHERE user_id = ${userID}
                     RETURNING updated_at
                 `
-                //get the updated at time stamp and add it to the URL so the lastest image can be shown
+                //get the updated and time stamp and add it to the URL so the lastest image can be shown
                 photoUrl = photoUrl + "?v="+getSQLdata[0].updated_at
                 
                 break;
@@ -124,8 +121,8 @@ export const updateAccountSettings = async (req, res) => {
     }
 
     let dataToUpdate = {}
-    if(firstname) dataToUpdate.firstname = firstname
-    if(lastname) dataToUpdate.lastname = lastname
+    if(storename) dataToUpdate.storename = storename
+    if(fullname) dataToUpdate.fullname = fullname
     if(phone) dataToUpdate.phone = phone
     if(phone2) dataToUpdate.phone2 = phone2
     if(storeaddress) dataToUpdate.storeaddress = storeaddress  
@@ -140,8 +137,9 @@ export const updateAccountSettings = async (req, res) => {
        if(updateError){
         throw updateError
        }
+    }else{
+      return res.status(200).json({message: 'Nothing changed', publicUrl: photoUrl })
     }
-    dataToUpdate ={};
 
 
     res.status(200).json({message: 'Profile updated successfully', publicUrl: photoUrl })
@@ -224,7 +222,7 @@ export const deleteAccount = async(req, res) =>{
   
   try {
     const userID = req.userData.userID.user_id;
-    const  { DELETE } = req.body
+    const  { DELETE } = await req.body
 
     if( DELETE?.toLowerCase() === "delete" ){
       
@@ -246,9 +244,9 @@ export const deleteAccount = async(req, res) =>{
         
         if(listingError){
           throw listingError
-        }else{
-          const itemToDelete = data.map(photo => `ads-images/${userID}/${photo.name}`)
-          
+        }else if(data.length > 0 ){
+
+          const itemToDelete = data.map(photo => `ads-images/${userID}/${photo.name}`)        
           const { error: deleteError } = await supabase.storage
           .from('ecommerce')
           .remove(itemToDelete)
@@ -258,7 +256,7 @@ export const deleteAccount = async(req, res) =>{
           } else {
             console.log('successfully!');
           }
-
+             
         }
 
         
@@ -268,7 +266,7 @@ export const deleteAccount = async(req, res) =>{
       .eq('user_id', userID)
 
       if(response.status){
-        res.cookie('access_token','dtssds' , {
+        res.cookie('access_token','delete', {
           httpOnly: true,
           secure: true,
           sameSite: 'none', // Essential for cross-domain cookies

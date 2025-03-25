@@ -98,3 +98,13 @@ export const signupAdmin = async(req, res) => {
     return res.status(401).json({ errorMessage: error.message });
   }
 };
+
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const logoutAdmin = async(req, res) =>{
+  res.cookie('workspace_token', " ", { httpOnly: true, secure: true, maxAge: 0, sameSite: 'none' });        
+  res.status(200).json({ isValidUser: false }) 
+}
