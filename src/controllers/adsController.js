@@ -118,14 +118,11 @@ export const postAds = async (req, res)=>{
  */
 export const getAdvertsPostedByUser = async (req, res) => {
     const userID = req.userData.userID.user_id;
-    const { categoryvalue } =  req.query
+    //const { categoryvalue } =  req.query
 
     try {
          
-        if(categoryvalue === "Laptops & Computers"){
-            
-        }
-
+        
         const {data, error} = await supabase
         .from('mobilephones')
         .select("*")

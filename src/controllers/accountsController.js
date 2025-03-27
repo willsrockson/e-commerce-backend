@@ -7,22 +7,6 @@ import "dotenv/config"
 
 
 
-
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
-export const getUserProileDetials = (req, res) => {
-  const userData = req.userData.userID.user_id;
-  //console.log(userData);
-
-  res.status(200).json({ userData });
-};
-
-
-
-// Get user Information
-
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res

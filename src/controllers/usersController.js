@@ -55,9 +55,6 @@ export const authState = async(req, res)=>{
 
 
 
-
-
-
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -92,8 +89,8 @@ export const loginUser = async(req, res) => {
            const jwt = await new SignJWT({ user_id: user[0].user_id })
               .setProtectedHeader({ alg: 'HS256' })
               .setIssuedAt()
-              .setIssuer('https://api-tonmame.onrender.com') // Update issuer to your actual domain
-              .setAudience('https://tonmame.netlify.app') // Set audience to frontend domain
+              .setIssuer('https://api.tonmame.store') // Update issuer to your actual domain
+              .setAudience('https://www.tonmame.store') // Set audience to frontend domain
               .setExpirationTime('7d')
               .sign(secret);
 
@@ -114,7 +111,8 @@ export const loginUser = async(req, res) => {
           res.cookie('access_token', jwt, {
                httpOnly: true,
                secure: true,
-               sameSite: 'none', // Essential for cross-domain cookies
+               sameSite: 'strict',
+               domain: "www.tonmame.store",
                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
              });
@@ -180,11 +178,8 @@ export const signUpUser = async(req, res) => {
          const jwt = await new SignJWT({ user_id: creatUser[0].user_id })
            .setProtectedHeader({ alg: "HS256" })
            .setIssuedAt()
-           .setIssuer("https://tonmame.onrender.com")
-           .setAudience([
-             "https://tonmame.netlify.app",
-             "https://app-tonmame.onrender.com",
-           ])
+           .setIssuer('https://api.tonmame.store') // Update issuer to your actual domain
+           .setAudience('https://www.tonmame.store') // Set audience to frontend domain
            .setExpirationTime("7d")
            .sign(secret);
 
@@ -203,7 +198,8 @@ export const signUpUser = async(req, res) => {
           res.cookie('access_token', jwt, {
                httpOnly: true,
                secure: true,
-               sameSite: 'none',
+               sameSite: 'strict',
+               domain: "www.tonmame.store",
                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
           });
@@ -225,10 +221,13 @@ export const signUpUser = async(req, res) => {
  */
 export const signOutUser = async(req, res)=> {
      try {
-          res.cookie('access_token', " ", { httpOnly: true, secure: true, maxAge: 0, sameSite: 'none' });        
+          res.cookie('access_token', " nothing ", 
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'strict', domain: "www.tonmame.store", });        
           res.status(200).json({ isValidUser: false }) 
      } catch (error) {
-          
+          res.cookie('access_token', " nothing ", 
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'strict', domain: "www.tonmame.store",}); 
+          res.status(200).json({ isValidUser: false }) 
      }
      
 }

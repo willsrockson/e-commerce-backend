@@ -7,12 +7,10 @@ const upload = multer({ dest: "uploads/" });
 import {
   accountSettings,
   deleteAccount,
-  getUserProileDetials,
   updateAccountPassword,
   updateAccountSettings,
 } from "../controllers/accountsController.js";
 
-router.get("/myshop", getUserProileDetials);
 
 router.get("/settings", accountSettings);
 

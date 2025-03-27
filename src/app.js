@@ -19,9 +19,9 @@ import authController from "./routes/ADMIN/authRoute.js"
 
 
 app.use(cors({
-    origin: ['https://tonmame.netlify.app', 'https://app-tonmame.onrender.com'],
+    origin: 'https://www.tonmame.store',
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    //allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({extended: true }));
@@ -45,12 +45,14 @@ app.use('/api/workspace/users', verificationRoute);
 app.use('/api/workspace/users', authController);
 
 
-// app.use((err, req, res, next) => {
-//     console.error("Global Error Handler:", err.message);
-//     res.status(500).json({ success: false, message: "Internal Server Error" });
-    
-// });
-
+// Makes sure anyone visting the backend uses HTTPS
+app.use((req, res, next) => {
+    if (req.headers["x-forwarded-proto"] !== "https") {
+      return res.redirect("https://" + req.headers.host + req.url);
+    }
+    next();
+  });
+  
 
 app.listen(PORT, ()=>{
     console.log(`Server is running on ${PORT}`);
