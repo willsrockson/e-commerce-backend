@@ -40,10 +40,13 @@ export const accountSettings = async (req, res) => {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export const updateAccountSettings = async (req, res) => {
+export const updateAccountSettings = async (req, res, err) => {
     let photoUrl;
     const updatedAt = new Date(Date.now()).toISOString();
   try {
+
+    if(err) return res.status(400).json({ message: err.message });
+
     const userID = req.userData.userID.user_id;
     const avatarFile = req.file;
     const { storename, fullname, phone, phone2, storeaddress } = req.body;

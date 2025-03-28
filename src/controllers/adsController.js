@@ -6,12 +6,16 @@ import sharp from "sharp";
  * @param {import('express').Response} res
  */
 import * as fs from "fs"
-export const postAds = async (req, res)=>{
+import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads.js";
+export const postAds = async ( req, res, err)=>{
      try{
+        
+        if(err) return res.status(400).json({ error: err.message });
+
         const userID = req.userData.userID.user_id; // get the ID of the logged in user
         const files = req.files;
         const adsInformation = req.body;
-
+            
           
         if(!userID){
             throw new Error("User not found.")
@@ -27,15 +31,18 @@ export const postAds = async (req, res)=>{
         if (files.length > 7) {
             return res.status(400).json({ error: 'Can`t upload more than 7 images.' });
           }
+        
+        if(!req.files) throw new Error('Only images are allowed!')  
          
           // map through each file upload it and delete the file
         const uploadAdImagePromises = files.map(async(file)=>{
 
             // Take the file from /uploads, convert it and store it inside supabase storage
             const outputBuffer = await sharp(file.path)
-              .webp({ quality: 90 })
+              .webp({ quality: 95 })
               .rotate()
-              .resize(1080 , 810)
+              .resize(1080 , 810, {fit: 'inside'})
+              
               .toBuffer();
 
             const { data, error } = await supabase.storage
@@ -45,9 +52,6 @@ export const postAds = async (req, res)=>{
                 upsert: false
             })
              
-            // Responsible for deleting file after uploading
-            fs.unlinkSync(file.path);
-            
             if(error){
                 throw error
             }
@@ -96,6 +100,9 @@ export const postAds = async (req, res)=>{
             }
             
         }
+
+        deleteAllFilesAfterUpload("./uploads")
+
         
         res.status(200).json({message: "Post has been published"});
        
@@ -103,7 +110,7 @@ export const postAds = async (req, res)=>{
 
      }catch(err){
          console.log("From adsController", err.message ); 
-         return res.status(500).json({ error: 'Upload failed' });
+         return res.status(400).json({ error: 'Upload failed' });
      }
     
    

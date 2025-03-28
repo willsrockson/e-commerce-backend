@@ -203,10 +203,12 @@ export const signUpUser = async(req, res) => {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
+
+//domain: "tonmame.store"
 export const signOutUser = async(req, res)=> {
     try {
          res.cookie('access_token',{}, 
-            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store"});        
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store" });        
          res.status(200).json({ isValidUser: false })
     } catch (error) {
          res.status(500).json({errMessage: "Couldn't logout retry"})
