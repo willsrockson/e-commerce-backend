@@ -12,43 +12,27 @@ const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
 export const recreateSessionForAlreadyLoginUsers = async(req, res)=>{
       const userID = req.userData.userID.user_id; // get the ID of the logged in user
 
-      console.log("Recreate visited");
+      console.log("Recreate visited", userID);
       
      try {
           
-          //After a successful login, fetch data
+          //Fetch user data
             const getUserData = await sql`
-            select users.firstname, users.lastname, avatars.imageUrl FROM users
-            JOIN avatars ON users.user_id = avatars.user_id
+            select users.fullname, avatars.imageUrl 
+            FROM users
+            FULL JOIN avatars ON users.user_id = avatars.user_id
             WHERE users.user_id = ${ userID }
        `
-          if(!getUserData){
-          throw new Error("Error getting user data!");
+          if(getUserData.length <= 0){
+             throw new Error("Error getting user data!");
           }
         
        res.status(200).json({ data: getUserData, isValidUser: true }) 
           
      } catch (err) {
-          return res.status(404).json({ data:[] , isValidUser: false });
+          return res.status(401).json({ isValidUser: false });
      }
 
-}
-
-
-
-
-
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
-export const authState = async(req, res)=>{
-    try {  
-          res.status(200).json({isValidUser: true})
-     
-    } catch (error) {
-        res.status(401).json({message: error.message})
-    }
 }
 
 
@@ -111,8 +95,8 @@ export const loginUser = async(req, res) => {
           res.cookie('access_token', jwt, {
                httpOnly: true,
                secure: true,
-               sameSite: 'strict',
-               domain: "www.tonmame.store",
+               sameSite: 'lax',
+               domain: "tonmame.store",
                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
              });
@@ -198,8 +182,8 @@ export const signUpUser = async(req, res) => {
           res.cookie('access_token', jwt, {
                httpOnly: true,
                secure: true,
-               sameSite: 'strict',
-               domain: "www.tonmame.store",
+               sameSite: 'lax',
+               domain: "tonmame.store",
                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
           });
@@ -222,11 +206,11 @@ export const signUpUser = async(req, res) => {
 export const signOutUser = async(req, res)=> {
      try {
           res.cookie('access_token', " nothing ", 
-            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'strict', domain: "www.tonmame.store", });        
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store" });        
           res.status(200).json({ isValidUser: false }) 
      } catch (error) {
           res.cookie('access_token', " nothing ", 
-            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'strict', domain: "www.tonmame.store",}); 
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store" }); 
           res.status(200).json({ isValidUser: false }) 
      }
      
