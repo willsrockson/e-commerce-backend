@@ -9,10 +9,10 @@ const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export const recreateSessionForAlreadyLoginUsers = async(req, res)=>{
+export const recreateSessionForAlreadyLoginUsers = async (req, res)=>{
       const userID = req.userData.userID.user_id; // get the ID of the logged in user
 
-      console.log("Recreate visited", userID);
+      //console.log("Recreate visited", userID);
       
      try {
           
@@ -204,14 +204,11 @@ export const signUpUser = async(req, res) => {
  * @param {import('express').Response} res
  */
 export const signOutUser = async(req, res)=> {
-     try {
-          res.cookie('access_token', " nothing ", 
-            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store" });        
-          res.status(200).json({ isValidUser: false }) 
-     } catch (error) {
-          res.cookie('access_token', " nothing ", 
-            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store" }); 
-          res.status(200).json({ isValidUser: false }) 
-     }
-     
+    try {
+         res.cookie('access_token',{}, 
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store"});        
+         res.status(200).json({ isValidUser: false })
+    } catch (error) {
+         res.status(500).json({errMessage: "Couldn't logout retry"})
+    }  
 }

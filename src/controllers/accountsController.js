@@ -253,7 +253,8 @@ export const deleteAccount = async(req, res) =>{
         res.cookie('access_token','delete', {
           httpOnly: true,
           secure: true,
-          sameSite: 'none', // Essential for cross-domain cookies
+          domain: "tonmame.store",
+          sameSite: 'lax', // Essential for cross-domain cookies
           maxAge: 0, // logout
           path: '/',
         });

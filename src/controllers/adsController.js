@@ -229,7 +229,7 @@ export const decactivePost = async(req, res)=>{
              if(trueError) throw error  
         }
         
-       res.status(200).json({message: "Successful operation" }) 
+       res.status(200).json({message: "Post visibility has been successfully updated." }) 
         
     } catch (error) {
         console.log(error.message);
