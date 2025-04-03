@@ -11,7 +11,7 @@ const fileFilter = (req, adImages, cb) => {
     }
 };
 
-const upload = multer({ dest: 'uploads/' , fileFilter , limits: { fileSize: 5 * 1024 * 1024 }});
+const upload = multer({ dest: 'uploads/' , fileFilter , limits: { fileSize: 5 * 1024 * 1024, files: 7 }});
 
 
 

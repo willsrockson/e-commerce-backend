@@ -5,8 +5,10 @@ import sharp from "sharp";
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-import * as fs from "fs"
 import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads.js";
+import sql from "../config/dbConn.js";
+
+
 export const postAds = async ( req, res, err)=>{
      try{
         
@@ -15,7 +17,6 @@ export const postAds = async ( req, res, err)=>{
         const userID = req.userData.userID.user_id; // get the ID of the logged in user
         const files = req.files;
         const adsInformation = req.body;
-            
           
         if(!userID){
             throw new Error("User not found.")
@@ -36,7 +37,7 @@ export const postAds = async ( req, res, err)=>{
          
           // map through each file upload it and delete the file
         const uploadAdImagePromises = files.map(async(file)=>{
-
+            
             // Take the file from /uploads, convert it and store it inside supabase storage
             const outputBuffer = await sharp(file.path)
               .webp({ quality: 95 })
@@ -47,7 +48,7 @@ export const postAds = async ( req, res, err)=>{
 
             const { data, error } = await supabase.storage
             .from('ecommerce')
-            .upload(`ads-images/${userID}/${Date.now()}-${file.originalname}`, outputBuffer, {
+            .upload(`ads-images/${userID}/${Date.now()}-${file.filename}.webp`, outputBuffer, {
                 cacheControl: '3600',
                 upsert: false
             })
@@ -129,13 +130,15 @@ export const getAdvertsPostedByUser = async (req, res) => {
 
     try {
          
-        
-        const {data, error} = await supabase
-        .from('mobilephones')
-        .select("*")
-        .eq("user_id", userID )
+        const data = await sql`
+          SELECT *
+          FROM mobilephones
+          WHERE user_id = ${userID}
+        `
 
-        if(error) throw error
+        if(data.length === 0){
+            return res.status(200).json([])
+        }
 
         res.status(200).json(data)
         
