@@ -11,8 +11,6 @@ const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
  */
 export const recreateSessionForAlreadyLoginUsers = async (req, res)=>{
       const userID = req.userData.userID.user_id; // get the ID of the logged in user
-
-      //console.log("Recreate visited", userID);
       
      try {
           

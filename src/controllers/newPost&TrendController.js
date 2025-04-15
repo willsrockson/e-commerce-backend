@@ -1,5 +1,5 @@
 import sql from "../config/dbConn.js"
-const currentTime = new Date(Date.now()).toISOString();
+//const currentTime = new Date(Date.now()).toISOString();
 
 /**
  * @param {import('express').Request} req
@@ -17,6 +17,7 @@ export const NewPosts = async(req, res)=>{
          mobilephones.title, 
          mobilephones.region, 
          mobilephones.condition,
+         mobilephones.created_at,
          users.isverifiedstore
          FROM mobilephones
          JOIN users ON users.user_id = mobilephones.user_id

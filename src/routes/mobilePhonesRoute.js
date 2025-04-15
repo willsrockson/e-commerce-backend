@@ -13,7 +13,7 @@ const fileFilter = (req, adImages, cb) => {
 const upload = multer({ dest: 'uploads/' , fileFilter , limits: { fileSize: 5 * 1024 * 1024, files: 7 }});
 
 
-import { deleteAdsPhotoOneByOne, editMobilePhoneDetails, fetchMobilePhones, getEachPhoneById } from "../controllers/mobilePhonesController.js";
+import { addToBuyLater, buyLaterStatus, deleteAdsPhotoOneByOne, editMobilePhoneDetails, fetchMobilePhones, getEachPhoneById } from "../controllers/mobilePhonesController.js";
 
 import  { authorizationMiddleware } from "../middleware/authorizationMiddleware.js"
 
@@ -34,5 +34,7 @@ router.post("/editmobile/:id", authorizationMiddleware, (req, res) => {
 
 router.delete("/delete-ads-photo-one-by-one/:id", authorizationMiddleware, deleteAdsPhotoOneByOne)
 
+router.post("/add-to-buy-later/:id", authorizationMiddleware , addToBuyLater)
+router.get("/buy-later-status/:id", authorizationMiddleware, buyLaterStatus)
 
 export default router;

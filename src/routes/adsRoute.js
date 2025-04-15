@@ -15,7 +15,8 @@ const upload = multer({ dest: 'uploads/' , fileFilter , limits: { fileSize: 5 * 
 
 
 
-import { decactivePost, deleteSinglePost, getAdvertsPostedByUser, postAds } from "../controllers/adsController.js";
+import { decactivePost, 
+    deleteSinglePost, getAdvertsPostedByUser, getAllBuyLaterItems, postAds, removeAllBuyLater, removeOneBuyLater } from "../controllers/adsController.js";
 
 
 //router.post("/upload", upload.array('adImages', 7), postAds);
@@ -30,11 +31,17 @@ router.post("/upload", (req, res) => {
 
 
 
-router.get("/store-ads-only",getAdvertsPostedByUser)
+router.get("/store-ads-only",getAdvertsPostedByUser);
 
-router.get('/delete-post/:id', deleteSinglePost)
+router.get('/delete-post/:id', deleteSinglePost);
 
-router.get('/deactivate-post/:id', decactivePost)
+router.get('/deactivate-post/:id', decactivePost);
+
+router.get("/get-all-buy-later", getAllBuyLaterItems);
+
+router.delete("/remove-all-buy-later", removeAllBuyLater)
+
+router.delete("/remove-one-buy-later/:id", removeOneBuyLater)
 
 
 

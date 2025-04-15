@@ -10,6 +10,8 @@ import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads.js";
  */
 export const fetchMobilePhones = async (req, res) => {
   try {
+    const { search } = req.query
+    
     const {
       region,
       town,
@@ -22,8 +24,52 @@ export const fetchMobilePhones = async (req, res) => {
       color,
     } = req.query;
 
+
+    if(search){
+
+      console.log("If hit");
+      
+
+       const keywords = search.toLowerCase().split(/\s+/);
+       
+              
+              // Build dynamic keyword to fetch data
+              // const conditions = keywords.map(kw => sql`
+              //   (
+              //     LOWER(model) LIKE ${'%' + kw + '%'} OR
+              //     LOWER(brand) LIKE ${'%' + kw + '%'} OR
+              //     LOWER(title) LIKE ${'%' + kw + '%'} OR
+              //     LOWER(description) LIKE ${'%' + kw + '%'} OR
+              //     LOWER(color) LIKE ${'%' + kw + '%'}
+              //   )
+              // `);
+
+       
+               const results = await sql`
+                   SELECT mobile_id , title, region, town, condition, price, images 
+                   FROM mobilephones
+                   WHERE ${sql`LOWER(model) LIKE ${'%' + keywords[0] + '%'} OR LOWER(brand) LIKE ${'%' + keywords[0] + '%'}`} AND
+                    ${sql`LOWER(model) LIKE ${'%' + keywords[1] + '%'} OR LOWER(brand) LIKE ${'%' + keywords[1] + '%'}`}
+                   ORDER BY created_at DESC
+                   LIMIT 50;
+               `;
+
+             console.log("Results--", results);
+
+         return res.status(200).json(results)      
+    }
+
     const finalData = await sql`
-            SELECT mobilephones.mobile_id, mobilephones.images, mobilephones.price, mobilephones.description, mobilephones.title, mobilephones.region, mobilephones.condition, users.isverifiedstore
+            SELECT 
+            mobilephones.mobile_id,
+            mobilephones.images, 
+            mobilephones.price, 
+            mobilephones.description, 
+            mobilephones.title, 
+            mobilephones.region, 
+            mobilephones.condition, 
+            mobilephones.created_at, 
+            users.isverifiedstore
             FROM mobilephones
             JOIN users on users.user_id = mobilephones.user_id
             WHERE mobilephones.deactivated != true
@@ -64,16 +110,68 @@ export const getEachPhoneById = async (req, res) => {
             FULL JOIN avatars on avatars.user_id = users.user_id
             WHERE m.mobile_id = ${id};
          `;
+    const relatedListings = await sql`
+          SELECT mobilephones.mobile_id, 
+          mobilephones.images, 
+          mobilephones.price, 
+          mobilephones.description, 
+          mobilephones.title, 
+          mobilephones.region, 
+          mobilephones.condition, 
+          users.isverifiedstore
+          FROM mobilephones
+          JOIN users on users.user_id = mobilephones.user_id
+          WHERE mobile_id <> ${id} AND model = ${getPhone[0].model}
+    `     
     if (!getPhone) {
       throw new Error("Phone not found");
     }
-
-    res.status(200).json(getPhone);
+             
+    res.status(200).json([getPhone, relatedListings]);
   } catch (error) {
-    console.log(error.message);
     return res.status(401).json([]);
   }
 };
+
+
+
+
+
+
+// Check whether a user has an items marked as buy later...
+// Some UI stuffs
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const buyLaterStatus = async(req, res)=>{
+    try {
+      const userID = req.userData.userID.user_id;
+      const mobile_id = Number(req.params.id);
+      const category = "mobilephones";
+      
+      if(!userID) return res.status(400).json({isValidUser: false});
+      const getBuyLaterData = await sql`
+           SELECT *
+           FROM buylater
+           WHERE user_id = ${userID} AND category = ${category}
+      `;
+      if(getBuyLaterData.length === 0 || !getBuyLaterData ) return res.status(200).json({buyLater: false });
+
+      const findBuyLaterItem = getBuyLaterData.find((item)=> item.ad_id === mobile_id )
+
+      if(!findBuyLaterItem) return res.status(200).json({buyLater: false });
+
+      res.status(200).json({buyLater: true })
+      
+    } catch (error) {
+      res.status(400).json({buyLater: false })
+    }
+}
+
+
+
 
 /**
  * @param {import('express').Request} req
@@ -263,3 +361,56 @@ export const deleteAdsPhotoOneByOne = async (req, res) => {
     return res.status(400).json({ errorMessage: error.message });
   }
 };
+
+
+
+// BookMark Item to purchase later
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const addToBuyLater = async (req, res) =>{
+      try {
+          const userID = req.userData.userID.user_id;
+          const mobileId = req.params.id
+          const { category } = req.body
+
+          if( !mobileId || !category || !userID) throw new Error('Error adding advert to buy later');
+          
+          //check if users has add the items already
+          const checkExistingBuyLater = await sql`
+                 SELECT *
+                 FROM buylater
+                 WHERE user_id = ${userID} AND ad_id = ${mobileId} AND category = ${category}
+          `;
+
+          if(checkExistingBuyLater.length === 0){
+             const insertBuyLater = await sql`
+              INSERT INTO buylater(category, ad_id, user_id)
+              VALUES(${category}, ${mobileId}, ${userID})
+              RETURNING buylater_id
+             `;
+             if(insertBuyLater.length > 0){
+               res.status(200).json({message: "Saved successfully"})
+             }else{
+               throw new Error('Something went wrong, retry')
+             }
+          }else{            
+             const removeBuyLater = await sql`
+               DELETE FROM buylater
+               WHERE user_id = ${userID} AND ad_id = ${mobileId} AND category = ${category}
+               RETURNING *
+             `;
+             if(removeBuyLater.length > 0){
+              res.status(200).json({message: "Removed successfully"})
+            }else{
+              throw new Error('Something went wrong, retry')
+            }
+          }
+         
+          
+      } catch (err) {
+         return res.status(400).json({message: err.message})
+      }
+}
+

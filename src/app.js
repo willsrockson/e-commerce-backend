@@ -12,6 +12,8 @@ import accountRoute from "./routes/accountRoute.js";
 import mobilePhonesRoute from "./routes/mobilePhonesRoute.js"
 import newPostAndTrendRoute from "./routes/newPost&TrendRoute.js"
 import idVerificationRoute from "./routes/idVerificationRoute.js"
+import countAdsRoute from "./routes/countAdsRoute.js"
+import searchRoute from "./routes/searchRoute.js"
 
 //ADMIN
 import verificationRoute from "./routes/ADMIN/verificationRoute.js"
@@ -49,6 +51,8 @@ app.use("/api/account", authorizationMiddleware, accountRoute);
 app.use("/api/mobile", mobilePhonesRoute);
 app.use("/api/homepage", newPostAndTrendRoute );
 app.use("/api/verify/", authorizationMiddleware , idVerificationRoute);
+app.use("/api/count-ads", countAdsRoute );
+app.use("/api/search", searchRoute);
 
 //ADMIN
 app.use('/api/workspace/users', verificationRoute);
