@@ -29,7 +29,7 @@ import authController from "./routes/ADMIN/authRoute.js"
 // });
 
 app.use(cors({
-    origin: 'https://tonmame.store',
+    origin: ['https://tonmame.store', 'http://localhost:5173/'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -51,8 +51,10 @@ app.use("/api/account", authorizationMiddleware, accountRoute);
 app.use("/api/mobile", mobilePhonesRoute);
 app.use("/api/homepage", newPostAndTrendRoute );
 app.use("/api/verify/", authorizationMiddleware , idVerificationRoute);
-app.use("/api/count-ads", countAdsRoute );
 app.use("/api/search", searchRoute);
+
+//Counte Routes
+app.use("/api/count-ads", countAdsRoute );
 
 //ADMIN
 app.use('/api/workspace/users', verificationRoute);

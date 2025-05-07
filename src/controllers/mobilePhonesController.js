@@ -117,7 +117,8 @@ export const getEachPhoneById = async (req, res) => {
           mobilephones.description, 
           mobilephones.title, 
           mobilephones.region, 
-          mobilephones.condition, 
+          mobilephones.condition,
+          mobilephones.created_at,  
           users.isverifiedstore
           FROM mobilephones
           JOIN users on users.user_id = mobilephones.user_id
