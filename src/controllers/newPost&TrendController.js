@@ -15,7 +15,8 @@ export const NewPosts = async(req, res)=>{
          mobilephones.price, 
          mobilephones.description, 
          mobilephones.title, 
-         mobilephones.region, 
+         mobilephones.region,
+         mobilephones.town,  
          mobilephones.condition,
          mobilephones.created_at,
          users.isverifiedstore

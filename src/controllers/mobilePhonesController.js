@@ -2,6 +2,7 @@ import sql from "../config/dbConn.js";
 import supabase from "../config/supabaseConn.js";
 import sharp from "sharp";
 import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads.js";
+import myCacheSystem from "../lib/nodeCache.js";
 
 // Get phones + Query
 /**
@@ -10,7 +11,7 @@ import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads.js";
  */
 export const fetchMobilePhones = async (req, res) => {
   try {
-    const { search } = req.query
+    const cached = myCacheSystem.get('mobilephones');
     
     const {
       region,
@@ -22,70 +23,126 @@ export const fetchMobilePhones = async (req, res) => {
       max_price,
       disk_space,
       color,
+      search
     } = req.query;
 
 
     if(search){
 
-      console.log("If hit");
-      
+          console.log("Search engine hit");
+          const keywords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+          if (keywords.length === 0) {
+             return res.status(200).json([]);
+          }
+          
+          try {
 
-       const keywords = search.toLowerCase().split(/\s+/);
-       
+              // Start building the query
+              let query = sql`
+                SELECT 
+                mobilephones.mobile_id,
+                mobilephones.images, 
+                mobilephones.price, 
+                mobilephones.description, 
+                mobilephones.title, 
+                mobilephones.region,
+                mobilephones.town,
+                mobilephones.brand,
+                mobilephones.model,    
+                mobilephones.condition,
+                mobilephones.disk_space,
+                mobilephones.color,  
+                mobilephones.created_at, 
+                users.isverifiedstore
+                FROM mobilephones
+                JOIN users on users.user_id = mobilephones.user_id
+              `;
               
-              // Build dynamic keyword to fetch data
-              // const conditions = keywords.map(kw => sql`
-              //   (
-              //     LOWER(model) LIKE ${'%' + kw + '%'} OR
-              //     LOWER(brand) LIKE ${'%' + kw + '%'} OR
-              //     LOWER(title) LIKE ${'%' + kw + '%'} OR
-              //     LOWER(description) LIKE ${'%' + kw + '%'} OR
-              //     LOWER(color) LIKE ${'%' + kw + '%'}
-              //   )
-              // `);
+              // Add WHERE clause if there are keywords
+              if (keywords.length > 0) {
+                query = sql`${query} WHERE mobilephones.deactivated != true AND`;
+                keywords.forEach((key, index) => {
+                  // Add AND between conditions, but not before the first one
+                  if (index > 0) {
+                    query = sql`${query} AND`;
+                  }
+                  // Add the condition for this keyword
+                  query = sql`${query} (
+                   LOWER(mobilephones.brand) LIKE ${'%' + key + '%'} OR
+                   LOWER(mobilephones.model) LIKE ${'%' + key + '%'} OR
+                   LOWER(mobilephones.condition) LIKE ${'%' + key + '%'} OR
+                   LOWER(REPLACE(disk_space, ' ', '')) LIKE ${'%' + key + '%'}  
+                  )`;
+                });
+              }
 
-       
-               const results = await sql`
-                   SELECT mobile_id , title, region, town, condition, price, images 
-                   FROM mobilephones
-                   WHERE ${sql`LOWER(model) LIKE ${'%' + keywords[0] + '%'} OR LOWER(brand) LIKE ${'%' + keywords[0] + '%'}`} AND
-                    ${sql`LOWER(model) LIKE ${'%' + keywords[1] + '%'} OR LOWER(brand) LIKE ${'%' + keywords[1] + '%'}`}
-                   ORDER BY created_at DESC
-                   LIMIT 50;
-               `;
-
-             console.log("Results--", results);
-
-         return res.status(200).json(results)      
+              // Execute the query
+              const mobileSearch = await query;
+              return res.status(200).json(mobileSearch);
+          } catch (error) {
+            console.error("SQL Error:", error);
+            return res.status(500).json({ error: "Search failed" });
+          }
+            
+    }
+   
+     
+    if(cached && region || town || brand || model || condition || min_price || max_price || disk_space || color ){
+      const filteredRegion = cached.filter( (item)=>
+          (!region || item.region === region) &&
+          (!town || item.town === town) &&
+          (!brand || item.brand === brand) &&
+          (!model || item.model === model) &&
+          (!condition || item.condition === condition) &&
+          (!min_price || item.price >= min_price) &&
+          (!max_price || item.price <= max_price) &&
+          (!disk_space || item.disk_space === disk_space) &&
+          (!color || item.color === color)
+        );
+      return res.status(200).json( filteredRegion );
     }
 
-    const finalData = await sql`
-            SELECT 
-            mobilephones.mobile_id,
-            mobilephones.images, 
-            mobilephones.price, 
-            mobilephones.description, 
-            mobilephones.title, 
-            mobilephones.region, 
-            mobilephones.condition, 
-            mobilephones.created_at, 
-            users.isverifiedstore
-            FROM mobilephones
-            JOIN users on users.user_id = mobilephones.user_id
-            WHERE mobilephones.deactivated != true
-            ${region ? sql`AND region = ${region}` : sql``}
-            ${town ? sql`AND town = ${town}` : sql``}
-            ${brand ? sql`AND brand = ${brand}` : sql``}
-            ${model ? sql`AND model = ${model}` : sql``}
-            ${condition ? sql`AND condition = ${condition}` : sql``}
-            ${min_price ? sql`AND price >= ${min_price}` : sql``}
-            ${max_price ? sql`AND price <= ${max_price}` : sql``}
-            ${disk_space ? sql`AND disk_space = ${disk_space}` : sql``}
-            ${color ? sql`AND color = ${color}` : sql``}
-            
-         `;
+    
+    if (cached && cached?.length > 0){
+        res.status(200).json(cached);
+    }else{
+    
+      const mobilephones = await sql`
+      SELECT 
+      mobilephones.mobile_id,
+      mobilephones.images, 
+      mobilephones.price, 
+      mobilephones.description, 
+      mobilephones.title, 
+      mobilephones.region,
+      mobilephones.town,
+      mobilephones.brand,
+      mobilephones.model,    
+      mobilephones.condition,
+      mobilephones.disk_space,
+      mobilephones.color,  
+      mobilephones.created_at, 
+      users.isverifiedstore
+      FROM mobilephones
+      JOIN users on users.user_id = mobilephones.user_id
+      WHERE mobilephones.deactivated != true
+      ${region ? sql`AND region = ${region}` : sql``}
+      ${town ? sql`AND town = ${town}` : sql``}
+      ${brand ? sql`AND brand = ${brand}` : sql``}
+      ${model ? sql`AND model = ${model}` : sql``}
+      ${condition ? sql`AND condition = ${condition}` : sql``}
+      ${min_price ? sql`AND price >= ${min_price}` : sql``}
+      ${max_price ? sql`AND price <= ${max_price}` : sql``}
+      ${disk_space ? sql`AND disk_space = ${disk_space}` : sql``}
+      ${color ? sql`AND color = ${color}` : sql``}
+      
+      `;
 
-    res.status(200).json(finalData);
+      myCacheSystem.set('mobilephones', mobilephones) 
+      res.status(200).json(mobilephones);
+
+    } 
+
   } catch (error) {
     res.json([]);
   }
