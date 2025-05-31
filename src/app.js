@@ -5,15 +5,19 @@ import cors from "cors"
 const PORT = process.env.PORT || 5001;
 
 
-// Routes imports
+// General routes imports
 import userRoute from "./routes/usersRoute.js";
-import  adsRoute from "./routes/adsRoute.js";
 import accountRoute from "./routes/accountRoute.js";
-import mobilePhonesRoute from "./routes/mobilePhonesRoute.js"
 import newPostAndTrendRoute from "./routes/newPost&TrendRoute.js"
 import idVerificationRoute from "./routes/idVerificationRoute.js"
 import countAdsRoute from "./routes/countAdsRoute.js"
 import searchRoute from "./routes/searchRoute.js"
+
+//Categories electronics imports
+import mobilePhonesRoute from "./routes/categories/electronics/mobilePhonesRoute.js"
+
+//Posting of ads route imports
+import postMobilePhonesAdRoute from "./routes/postAds/electronics/postMobilePhonesAdRoute.js";
 
 //ADMIN
 import verificationRoute from "./routes/ADMIN/verificationRoute.js"
@@ -44,14 +48,18 @@ import { authorizationMiddleware } from "./middleware/authorizationMiddleware.js
 
 
 
-//Routes
+//General routes
 app.use("/api/user", userRoute);
-app.use("/api/ads", authorizationMiddleware, adsRoute);
 app.use("/api/account", authorizationMiddleware, accountRoute);
-app.use("/api/mobile", mobilePhonesRoute);
 app.use("/api/homepage", newPostAndTrendRoute );
 app.use("/api/verify/", authorizationMiddleware , idVerificationRoute);
 app.use("/api/search", searchRoute);
+
+//Categories electronics routes
+app.use("/api/mobile", mobilePhonesRoute);
+
+// Posting of ads routes
+app.use("/api/upload/categories/electronics", authorizationMiddleware, postMobilePhonesAdRoute);
 
 //Counte Routes
 app.use("/api/count-ads", countAdsRoute );

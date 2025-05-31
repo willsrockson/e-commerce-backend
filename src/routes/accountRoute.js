@@ -19,7 +19,13 @@ import {
   deleteAccount,
   updateAccountPassword,
   updateAccountSettings,
-} from "../controllers/accountsController.js";
+  getAllAdvertsPostedByMe,
+  deleteAdvertPostedByMe,
+  decactiveAdvertPostedByMe,
+  getAllSavedAdsByMe,
+  deleteOneSavedAdsByMe,
+  deleteAllSavedAdsByMe
+} from "../controllers/accountController.js";
 
 
 router.get("/settings", accountSettings);
@@ -40,5 +46,19 @@ updateAccountSettings)
 router.post("/update_password", updateAccountPassword);
 
 router.delete("/delete", deleteAccount)
+
+router.get("/me/ads",getAllAdvertsPostedByMe);
+
+router.get('/me/delete/ad/:id', deleteAdvertPostedByMe);
+
+router.get('/me/deactivate/ad/:id', decactiveAdvertPostedByMe);
+
+router.get("/me/saved/ads", getAllSavedAdsByMe);
+
+router.delete("/me/delete/one/saved/ad/:id", deleteOneSavedAdsByMe)
+
+router.delete("/me/delete/all/saved/ads", deleteAllSavedAdsByMe)
+
+
 
 export default router;

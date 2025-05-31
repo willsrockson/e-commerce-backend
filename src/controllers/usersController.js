@@ -94,7 +94,7 @@ export const loginUser = async(req, res) => {
                httpOnly: true,
                secure: true,
                sameSite: 'lax',
-               domain: "tonmame.store",
+               //domain: "tonmame.store",
                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
              });
@@ -181,7 +181,7 @@ export const signUpUser = async(req, res) => {
                httpOnly: true,
                secure: true,
                sameSite: 'lax',
-               domain: "tonmame.store",
+               //domain: "tonmame.store",
                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
                path: '/',
           });
@@ -206,7 +206,7 @@ export const signUpUser = async(req, res) => {
 export const signOutUser = async(req, res)=> {
     try {
          res.cookie('access_token',{}, 
-            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax', domain: "tonmame.store" });        
+            { httpOnly: true, secure: true, maxAge: 0, sameSite: 'lax' });        
          res.status(200).json({ isValidUser: false })
     } catch (error) {
          res.status(500).json({errMessage: "Couldn't logout retry"})

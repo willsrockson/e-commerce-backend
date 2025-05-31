@@ -6,6 +6,12 @@ import bcrypt from "bcryptjs";
 import "dotenv/config"
 
 
+import { 
+       publishedAdsQuery,
+       mainCategoryCountQuery,
+       subCategoryCountQuery 
+       } from "../utils/sql-queries/account/ads-posted-by-me/adsPostedByMe.js";
+
 
 /**
  * @param {import('express').Request} req
@@ -29,8 +35,6 @@ export const accountSettings = async (req, res) => {
     return res.status(401).json([])
   }
 };
-
-
 
 
 
@@ -273,3 +277,226 @@ export const deleteAccount = async(req, res) =>{
       
   }
 }
+
+
+// Get all Adverts the user has published
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getAllAdvertsPostedByMe = async(req, res)=>{
+    const userID = req.userData.userID.user_id;
+     const {main_category, sub_category} = req.query
+     
+    try {
+
+        const [publishedAds, mainCategoryCount, subCategoryCount] = await Promise.all(
+            [
+                publishedAdsQuery(userID, main_category, sub_category),
+                mainCategoryCountQuery(userID, main_category, sub_category),
+                subCategoryCountQuery(userID, main_category, sub_category)
+            ]
+           );
+
+      
+      res.status(200).json({
+        publishedAds,
+        counts:{
+           main: mainCategoryCount,
+           sub: subCategoryCount
+        }
+      })
+    } catch (error) {
+      console.log(error.message);
+      res.json([]);
+    }
+}
+
+
+
+// Delete ads published by user
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const deleteAdvertPostedByMe = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!id) return;
+
+    const { data, error } = await supabase
+      .from("ads")
+      .select("images")
+      .eq("ads_id", id);
+    
+    if (error) {
+      throw error;
+    }
+    
+    const splited = data[0].images.map((item) => item.split("ecommerce/")[1]);
+
+    const { error: deleteError } = await supabase.storage
+      .from("ecommerce")
+      .remove(splited);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    const { error: deletePhone } = await supabase
+      .from("ads")
+      .delete()
+      .eq("ads_id", id);
+
+    if (deletePhone) {
+      throw deleteError;
+    }
+
+    res.status(200).json({ message: "Deleted successfully" });
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ errMessage: 'Something went wrong, please retry!' });
+  }
+};
+
+
+//Deactivated ads published by user
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const decactiveAdvertPostedByMe = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!id) return;
+
+    const { data, error: findError } = await supabase
+      .from("ads")
+      .select("deactivated")
+      .eq("ads_id", id);
+
+    if (findError) throw findError;
+    
+    if (data[0].deactivated) {
+      const { error: falseError } = await supabase
+        .from("ads")
+        .update({ deactivated: false })
+        .eq("ads_id", id);
+
+      if (falseError) throw error;
+    } else if (data[0].deactivated == false) {
+      const { error: trueError } = await supabase
+        .from("ads")
+        .update({ deactivated: true })
+        .eq("ads_id", id);
+
+      if (trueError) throw error;
+    }
+
+    res
+      .status(200)
+      .json({ message: "Ad visibility has been successfully updated." });
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ errMessage: 'Something went wrong, please retry!' });
+  }
+};
+
+
+
+// Get all saved Ads by user
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getAllSavedAdsByMe = async (req, res) => {
+  try {
+    const queries = req.query;
+    const userID = req.userData.userID.user_id;
+
+    if (!userID) throw new Error("User not found");
+
+    const savedAds = await sql`
+           SELECT
+           savedads.saved_ads_id, 
+           ads.ads_id, 
+           ads.title,
+           ads.main_category,
+           ads.sub_category, 
+           (metadata->>'price') price, 
+           ads.images, 
+           (metadata->>'condition') condition, 
+           ads.region, 
+           ads.town, 
+           users.phone,
+           users.phone2
+           FROM savedads
+           JOIN ads ON ads.ads_id = savedads.ads_id
+           JOIN users ON users.user_id = ads.user_id
+           WHERE savedads.user_id = ${userID}
+        `;
+
+    if (savedAds.length === 0 || !savedAds) {
+      return res.status(200).json([]);
+    }
+
+    res.status(200).json(savedAds);
+
+  } catch (error) {
+    console.log(error.message);
+    res.status(400).json([]);
+  }
+};
+
+
+
+// This removes each saved ads on a single click
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const deleteOneSavedAdsByMe = async (req, res) => {
+  try {
+    const saved_ads_id = Number(req.params.id);
+    const userID = req.userData.userID.user_id;
+    const remove = await sql`
+          DELETE FROM savedads
+          WHERE saved_ads_id =${saved_ads_id} AND user_id = ${userID}
+          RETURNING *
+        `;
+    if (remove.length === 0)
+      return res.status(200).json({ message: "No data found" });
+
+    res.status(200).json({ message: "Removed successfully" });
+  } catch (error) {
+    return res.status(400).json({ message: "Failed operation, retry!" });
+  }
+};
+
+
+
+
+// Delete all saved ads
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const deleteAllSavedAdsByMe = async (req, res) => {
+  try {
+    const userID = req.userData.userID.user_id;
+    const remove = await sql`
+          DELETE FROM savedads
+          WHERE user_id = ${userID}
+          RETURNING *
+        `;
+    if (remove.length === 0)
+      return res.status(200).json({ message: "No data found" });
+
+    res.status(200).json({ message: "Cleared successfully" });
+  } catch (error) {
+    return res.status(400).json({ message: "Failed operation, retry!" });
+  }
+};

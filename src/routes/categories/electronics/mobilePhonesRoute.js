@@ -13,16 +13,26 @@ const fileFilter = (req, adImages, cb) => {
 const upload = multer({ dest: 'uploads/' , fileFilter , limits: { fileSize: 5 * 1024 * 1024, files: 7 }});
 
 
-import { addToBuyLater, buyLaterStatus, deleteAdsPhotoOneByOne, editMobilePhoneDetails, fetchMobilePhones, getEachPhoneById } from "../controllers/mobilePhonesController.js";
+import { 
+       addToSaveAds, 
+       savedAdsStatus, 
+       deleteAdsPhotoOneByOne, 
+       editMobilePhoneDetails, 
+       fetchMobilePhones, 
+       getEachPhoneById,
+       fetchMobilePhoneForEditing 
+    } from "../../../controllers/categories/electronics/mobilePhonesController.js";
 
-import  { authorizationMiddleware } from "../middleware/authorizationMiddleware.js"
+import  { authorizationMiddleware } from "../../../middleware/authorizationMiddleware.js"
 
 
 router.get("/phones", fetchMobilePhones );
 
 router.get("/phones/:id", getEachPhoneById);
 
-router.post("/editmobile/:id", authorizationMiddleware, (req, res) => {
+router.get("/phone/for/editing/:id", authorizationMiddleware, fetchMobilePhoneForEditing)
+
+router.post("/edit/mobilephone/:id", authorizationMiddleware, (req, res) => {
     upload.array('adImages', 7)(req, res, (err) => {
         if (err) { 
             return editMobilePhoneDetails(req, res, err);
@@ -34,7 +44,7 @@ router.post("/editmobile/:id", authorizationMiddleware, (req, res) => {
 
 router.delete("/delete-ads-photo-one-by-one/:id", authorizationMiddleware, deleteAdsPhotoOneByOne)
 
-router.post("/add-to-buy-later/:id", authorizationMiddleware , addToBuyLater)
-router.get("/buy-later-status/:id", authorizationMiddleware, buyLaterStatus)
+router.post("/add-to-buy-later/:id", authorizationMiddleware , addToSaveAds)
+router.get("/buy-later-status/:id", authorizationMiddleware, savedAdsStatus)
 
 export default router;

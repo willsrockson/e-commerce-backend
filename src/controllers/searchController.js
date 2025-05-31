@@ -37,7 +37,8 @@ export const findProduct = async(req, res)=>{
                LOWER(mobilephones.brand) LIKE ${'%' + key + '%'} OR
                LOWER(mobilephones.model) LIKE ${'%' + key + '%'} OR
                LOWER(mobilephones.condition) LIKE ${'%' + key + '%'} OR
-               LOWER(REPLACE(disk_space, ' ', '')) LIKE ${'%' + key + '%'}
+               LOWER(REPLACE(mobilephones.disk_space, ' ', '')) LIKE ${'%' + key + '%'} OR
+               LOWER(mobilephones.disk_space) LIKE ${'%' + key + '%'}
               )`;
             });
             query = sql`${query} LIMIT 1`;
@@ -45,9 +46,6 @@ export const findProduct = async(req, res)=>{
         
           const results = await query;
           
-          console.log(results);
-          
-
         if(results[0].category) searchResultsArray.push(results[0].category);
         
         res.status(200).json(searchResultsArray)
