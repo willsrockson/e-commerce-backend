@@ -1,7 +1,14 @@
 import sql from "../../../config/dbConn.js";
+import pool from "../../../config/pgPool.js";
 import supabase from "../../../config/supabaseConn.js";
 import sharp from "sharp";
 import { deleteAllFilesAfterUpload } from "../../../utils/deleteFilesInUploads.js";
+
+import { countMobilePhoneQuery, modelCountQuery, brandCountQuery, regionCountQuery, townCountQuery,
+     conditionCountQuery, storageCountQuery , colorCountQuery, sellersCountQuery, getMobilePhonesQuery
+   
+} 
+from "../../../utils/sql-queries/categories/electronics/mobilephonesQueries.js";
 
 const main_category = 'electronics';
 const sub_category = 'mobilephones';
@@ -16,11 +23,8 @@ export const fetchMobilePhones = async (req, res) => {
    const page = parseInt(req.query.page) || 1;
    const limit = parseInt(req.query.limit) || 20;
    const offset = (page - 1) * limit;
-   
 
-  try {
-    
-    const {
+   const {
       region,
       town,
       brand,
@@ -32,154 +36,93 @@ export const fetchMobilePhones = async (req, res) => {
       color,
       isverifiedseller,
     } = req.query;
-
-    
-    // if(search){
-
-    //       console.log("Search engine hit");
-    //       const keywords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    //       if (keywords.length === 0) {
-    //          return res.status(200).json([]);
-    //       }
-          
-    //       try {
-
-    //           // Start building the query
-    //           let query = sql`
-    //             SELECT 
-    //             mobilephones.mobile_id,
-    //             mobilephones.images, 
-    //             mobilephones.price, 
-    //             mobilephones.description, 
-    //             mobilephones.title, 
-    //             mobilephones.region,
-    //             mobilephones.town,
-    //             mobilephones.brand,
-    //             mobilephones.model,    
-    //             mobilephones.condition,
-    //             mobilephones.disk_space,
-    //             mobilephones.color,  
-    //             mobilephones.created_at, 
-    //             users.isverifiedstore
-    //             FROM mobilephones
-    //             JOIN users on users.user_id = mobilephones.user_id
-    //           `;
-              
-    //           // Add WHERE clause if there are keywords
-    //           if (keywords.length > 0) {
-    //             query = sql`${query} WHERE mobilephones.deactivated != true AND`;
-    //             keywords.forEach((key, index) => {
-    //               // Add AND between conditions, but not before the first one
-    //               if (index > 0) {
-    //                 query = sql`${query} AND`;
-    //               }
-    //               // Add the condition for this keyword
-    //               query = sql`${query} (
-    //                LOWER(mobilephones.brand) LIKE ${'%' + key + '%'} OR
-    //                LOWER(mobilephones.model) LIKE ${'%' + key + '%'} OR
-    //                LOWER(mobilephones.condition) LIKE ${'%' + key + '%'} OR
-    //                LOWER(REPLACE(mobilephones.disk_space, ' ', '')) LIKE ${'%' + key + '%'} OR
-    //                LOWER(mobilephones.disk_space) LIKE ${'%' + key + '%'}  
-    //               )`;
-    //             });
-    //           }
-
-    //           // Execute the query
-    //           const mobileSearch = await query;
-    //           return res.status(200).json(mobileSearch);
-    //       } catch (error) {
-    //         console.error("SQL Error:", error);
-    //         return res.status(500).json({ error: "Search failed" });
-    //       }
-            
-    // }
    
-     
-    // if(cached && region || town || brand || model || condition || min_price || max_price || disk_space || color ){
-    //   const filteredRegion = cached.filter( (item)=>
-    //       (!region || item.region === region) &&
-    //       (!town || item.town === town) &&
-    //       (!brand || item.brand === brand) &&
-    //       (!model || item.model === model) &&
-    //       (!condition || item.condition === condition) &&
-    //       (!min_price || item.price >= min_price) &&
-    //       (!max_price || item.price <= max_price) &&
-    //       (!disk_space || item.disk_space === disk_space) &&
-    //       (!color || item.color === color)
-    //     );
-    //   return res.status(200).json( filteredRegion );
-    // }
-
-    
-    // if (cached && cached?.length > 0){
-    //     res.status(200).json(cached);
-    // }else{
-    
-    // } 
-    
-    const getMobilePhones = await sql`
-      SELECT
-      ads.ads_id,
-      ads.region,
-      ads.town,
-      ads.title,
-      ads.images,
-      ads.created_at,
-      users.isverifiedstore,
-      (metadata->>'price') price,
-      (metadata->>'condition') condition
-      FROM ads
-      JOIN users on users.user_id = ads.user_id
-      WHERE ads.deactivated != true AND ads.main_category = ${main_category} AND ads.sub_category = ${sub_category}
-      ${region ? sql`AND ads.region = ${region}` : sql``}
-      ${town ? sql`AND ads.town = ${town}` : sql``}
-      ${brand ? sql`AND metadata->>'brand' = ${brand}` : sql``}
-      ${model ? sql`AND metadata->>'model' = ${model}` : sql``}
-      ${condition ? sql`AND metadata->>'condition' = ${condition}` : sql``}
-      ${min_price ? sql`AND (metadata->>'price')::int >= ${min_price}` : sql``}
-      ${max_price ? sql`AND (metadata->>'price')::int <= ${max_price}` : sql``}
-      ${disk_space ? sql`AND metadata->>'disk_space' = ${disk_space}` : sql``}
-      ${color ? sql`AND metadata->>'color' = ${color}` : sql``}
-      ${isverifiedseller === "True" ? sql`AND users.isverifiedstore = ${true}` : sql``}
-      ${isverifiedseller === "False" ? sql`AND users.isverifiedstore = ${false}` : sql``}
-      ORDER BY created_at DESC
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `
 
 
-      const countMobilePhone = await sql`
-        SELECT COUNT(*)
-        FROM ads
-        JOIN users on users.user_id = ads.user_id
-        WHERE ads.deactivated != true AND ads.main_category = ${main_category} AND ads.sub_category = ${sub_category}
-        ${region ? sql`AND ads.region = ${region}` : sql``}
-        ${town ? sql`AND ads.town = ${town}` : sql``}
-        ${brand ? sql`AND metadata->>'brand' = ${brand}` : sql``}
-        ${model ? sql`AND metadata->>'model' = ${model}` : sql``}
-        ${condition ? sql`AND metadata->>'condition' = ${condition}` : sql``}
-        ${min_price ? sql`AND (metadata->>'price')::int >= ${min_price}` : sql``}
-        ${max_price ? sql`AND (metadata->>'price')::int <= ${max_price}` : sql``}
-        ${disk_space ? sql`AND metadata->>'disk_space' = ${disk_space}` : sql``}
-        ${color ? sql`AND metadata->>'color' = ${color}` : sql``}
-        ${isverifiedseller === "True" ? sql`AND users.isverifiedstore = ${true}` : sql``}
-        ${isverifiedseller === "False" ? sql`AND users.isverifiedstore = ${false}` : sql``}
-    `
+   
+     try {
+          
+         let query = ` `
+         let param = []
+         if(brand){
+            query += ` AND metadata->>'brand' = $${param.length + 1} `
+           param.push(brand)
+         }
+         if(model){
+            query += ` AND metadata->>'model' = $${param.length + 1} `
+           param.push(model)
+         }
+         if(region){
+           query += ` AND region = $${param.length + 1} `
+           param.push(region)
+         }
+         if(town){
+           query += ` AND town = $${param.length + 1} `
+           param.push(town)
+         }
+         if(condition){
+            query += ` AND metadata->>'condition' = $${param.length + 1} `
+           param.push(condition)
+         }
+         if(disk_space){
+            query += ` AND metadata->>'disk_space' = $${param.length + 1} `
+           param.push(disk_space)
+         }
+         if(color){
+            query += ` AND metadata->>'color' = $${param.length + 1} `
+            param.push(color)
+         }
+         if(isverifiedseller === 'true'){
+            query += ` AND users.isverifiedstore = $${param.length + 1} `
+            param.push(true)
+         }
+         if(isverifiedseller === 'false'){
+            query += ` AND users.isverifiedstore = $${param.length + 1} `
+            param.push(false)
+         }
+         
 
-      const total = parseInt(countMobilePhone[0].count);
-     
+          const [getMobilePhones, countMobilePhone, brandCount, modelCount, regionCount, townCount, conditionCount,
+                storageCount, colorCount, isverifiedsellerCount] = await Promise.all(
+            [
+               getMobilePhonesQuery(query, param, limit, offset),
+               countMobilePhoneQuery(query, param),
+               brandCountQuery(query, param),
+               modelCountQuery(query, param),
+               regionCountQuery(query, param),
+               townCountQuery(query, param),
+               conditionCountQuery(query, param),
+               storageCountQuery(query, param),
+               colorCountQuery(query, param),
+               sellersCountQuery(query, param)
+            ])
+
+         const total = parseInt(countMobilePhone.rows[0]?.count);
+         
+         return res.json({
+               phones: getMobilePhones.rows,
+               counts:{
+                    brand: brandCount.rows,
+                    model: modelCount.rows,
+                    region: regionCount.rows,
+                    town: townCount.rows,
+                    condition: conditionCount.rows,
+                    disk_space: storageCount.rows,
+                    color: colorCount.rows,
+                    isverifiedseller: isverifiedsellerCount.rows
+               },
+               total,
+               hasMore: offset + getMobilePhones.rows.length < total,
+               page: page
+         });
+
       
-      res.status(200).json({
-           phones: getMobilePhones,
-           total,
-           hasMore: offset + getMobilePhones.length < total,
-           page: page
-      });
+     } catch (error) {
+        console.log(error.message)
+        return res.json([])
+     }
 
-
-  } catch (error) {
-    res.json([]);
-  }
+  
 };
 
 // Function below gets each phones clicked on the site
