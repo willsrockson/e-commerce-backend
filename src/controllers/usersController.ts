@@ -11,6 +11,8 @@ import { verificationEmailHTML } from '../config/html.templates';
 import { AuthRequest } from '../middleware/authorizationMiddleware';
 import myCacheSystem from '../lib/nodeCache';
 import { sendCustomCookies } from '../lib/cookies';
+import { ZloginType, ZSignUpType } from '../utils/zod.types';
+import z from 'zod';
 
 interface UserType{
    email?: string;
@@ -22,10 +24,6 @@ interface UserType{
 
 export const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
 
-// Checks whether the email or phone number is valid or not   
-function isValidEmailOrPhone(emailOrPhone: string) {
-    return /^(?:[^\s@]+@[^\s@]+\.[^\s@]+|\d{10})$/.test(emailOrPhone);
-}
 // Checks whether the email is valid or not   
 function isValidEmail(email: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -69,24 +67,23 @@ export const recreateSessionForAlreadyLoginUsers = async (req: AuthRequest, res:
 
 // Logic for logging the user in.
 export const loginUser = async(req: Request, res: Response): Promise<void> => {
-      const data: UserType = await req.body;
       
       try {
-            if(!data.emailPhone?.trim() || !data.password?.trim()){
-                  throw new Error("All fields are required.")
+           const data = ZloginType.safeParse(req.body)
+        
+            if(!data.success){
+               throw new Error(data.error.issues[0].message)
             }
-            if(data.password.length  < 6){
-               throw new Error("Password must be 6 characters or more.")
             
-            }
+
              //checks whether user already exist
             const user = await db
                 .select({ user_id: UserTable.user_id, password: UserTable.password, token_version: UserTable.token_version })
                 .from(UserTable)
                 .where(
                     or(
-                        eq(UserTable.email, data.emailPhone),
-                        eq(UserTable.phone_primary, data.emailPhone)
+                        eq(UserTable.email, data.data.emailPhone),
+                        eq(UserTable.phone_primary, data.data.emailPhone)
                     )
                 );
               
@@ -94,7 +91,7 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
               throw new Error("User doesn't exist");               
             }
 
-           const checkPassword = await bcrypt.compare(data.password, user[0].password);
+           const checkPassword = await bcrypt.compare(data.data.password, user[0].password);
 
            if(!checkPassword) {
               throw new Error("No record match");
@@ -137,14 +134,12 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
            
           res.status(200).json({ data: getUserData[0], isValidUser: true }) 
       
-      } catch (err: unknown) {
+      } catch (err: unknown) {       
           if(err instanceof Error){
+            console.log(err);
             res.status(404).json({ errorMessage: err.message, isValidUser: false });
             return
           }
-          console.error(String(err));
-          res.status(404).json({ errorMessage: 'An unexpected error happened', isValidUser: false });
-          return;
       }
 
 }
@@ -154,35 +149,42 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
 // Logic for registering user into the database.
 
 export const signUpUser = async(req: Request, res: Response): Promise<void> => {
-      const data: UserType = await req.body;
+      //const data: UserType = await req.body;
       const emailSubject = "Verify your Email";
 
-      if(!data.email?.trim() || !data.password?.trim() || !data.fullName?.trim() || !data.phonePrimary?.trim()){
-         res.status(400).json({errorMessage: "Field cannot be empty"});
-         return;
-      }
-      if(isValidEmail(data.email) == false ){
-        res.status(400).json({errorMessage: "Please enter a valid email"});
-        return;
-      } 
-      if(data.password.length < 6){
-        res.status(400).json({errorMessage: "Password must be 6 characters or more."});
-        return;
-      } 
-      if(data.phonePrimary.length < 10 || data.phonePrimary.length > 10 || isNaN(Number(data.phonePrimary))){
-        res.status(400).json({errorMessage: "Phone must be numbers and 10 digits."});
-        return;
-      }
+      // if(!data.email?.trim() || !data.password?.trim() || !data.fullName?.trim() || !data.phonePrimary?.trim()){
+      //    res.status(400).json({errorMessage: "Field cannot be empty"});
+      //    return;
+      // }
+      // if(isValidEmail(data.email) == false ){
+      //   res.status(400).json({errorMessage: "Please enter a valid email"});
+      //   return;
+      // } 
+      // if(data.password.length < 6){
+      //   res.status(400).json({errorMessage: "Password must be 6 characters or more."});
+      //   return;
+      // } 
+      // if(data.phonePrimary.length < 10 || data.phonePrimary.length > 10 || isNaN(Number(data.phonePrimary))){
+      //   res.status(400).json({errorMessage: "Phone must be numbers and 10 digits."});
+      //   return;
+      // }
        
       
       
        try {
+         
+         const data = ZSignUpType.safeParse(req.body);
+
+          if(!data.success){
+               throw new Error(data.error.issues[0].message)
+            }
+
          //checks whether user already exist
          const checkUserExistence = await db
              .select({ user_id: UserTable.user_id})
              .from(UserTable)
              .where(
-                 or(eq(UserTable.email, data.email), eq(UserTable.phone_primary, data.phonePrimary))
+                 or(eq(UserTable.email, data.data.email), eq(UserTable.phone_primary, data.data.phonePrimary))
              );
          
          if (checkUserExistence[0]?.user_id) {
@@ -191,13 +193,13 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
 
          //Create account
          const salt = await bcrypt.genSalt(Number(process.env.SALT));
-         const hash = await bcrypt.hash(data.password, salt);
+         const hash = await bcrypt.hash(data.data.password, salt);
          //Create user object
          const user: typeof UserTable.$inferInsert = {
-              full_name: data.fullName,
-              email: data.email,
+              full_name: data.data.fullName,
+              email: data.data.email,
               password: hash,
-              phone_primary: data.phonePrimary
+              phone_primary: data.data.phonePrimary
          }
 
         const createUser = await db
@@ -258,9 +260,9 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
         const messageTokenLink = process.env.WEBSITE_URL + `?verify-email=${jwtForResendMessages}`;
 
         await emailClient(
-                 [data.email], 
+                 [data.data.email], 
                  emailSubject,
-                 verificationEmailHTML.replace("[Full Name]", data.fullName.split(' ')[0])
+                 verificationEmailHTML.replace("[Full Name]", data.data.fullName.split(' ')[0])
                  .replaceAll("[Verification Link]", messageTokenLink)
           );
         
@@ -279,8 +281,6 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
                res.status(409).json({ errorMessage: err.message, isValidUser: false });
                return;
              }
-             res.status(409).json({ errorMessage: String(err), isValidUser: false });
-             return;
           }     
 }
 
