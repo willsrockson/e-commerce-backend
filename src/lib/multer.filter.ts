@@ -6,7 +6,7 @@ interface IFileType{
     numOfFiles: number;
 }
 
-const fileFilter = (req: Request, adImages: { mimetype:string; }, cb: FileFilterCallback) => {
+const fileFilter = (_req: Request, adImages: { mimetype:string; }, cb: FileFilterCallback) => {
     if (adImages.mimetype.startsWith('image/')) {
         cb(null, true);
     } else {

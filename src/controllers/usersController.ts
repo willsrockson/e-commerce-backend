@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import sqll from '../config/dbConn';
 import db from '../config/db/connection/dbConnection';
 import bcrypt from "bcryptjs";
 import { SignJWT } from "jose"
@@ -12,22 +11,8 @@ import { AuthRequest } from '../middleware/authorizationMiddleware';
 import myCacheSystem from '../lib/nodeCache';
 import { sendCustomCookies } from '../lib/cookies';
 import { ZloginType, ZSignUpType } from '../utils/zod.types';
-import z from 'zod';
-
-interface UserType{
-   email?: string;
-   emailPhone?: string; 
-   password?: string; 
-   fullName?: string; 
-   phonePrimary?: string
-}
 
 export const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
-
-// Checks whether the email is valid or not   
-function isValidEmail(email: string) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 export const recreateSessionForAlreadyLoginUsers = async (req: AuthRequest, res: Response): Promise<void> =>{
      

@@ -1,17 +1,17 @@
 import express,{Request, Response} from "express";
 const router = express.Router();
-import multer, { FileFilterCallback,  } from "multer";
 import { authorizationMiddleware } from "../middleware/authorizationMiddleware";
-
+import { uploadFilter } from "../lib/multer.filter";
+const upload = uploadFilter({fileSize: 5 * 1024 * 1024, numOfFiles: 1})
 // File filter to accept only images
-const fileFilter = (req: Request, avatar: Express.Multer.File , cb: FileFilterCallback ) => {
-  if (avatar.mimetype.startsWith('image/')) {
-      cb(null, true); // Accept the file
-  } else {
-      cb( new Error('Only images are allowed!')); // Reject the file
-  }
-};
-const upload = multer({ dest: "uploads/", fileFilter , limits: { fileSize: 5 * 1024 * 1024 } });
+// const fileFilter = (req: Request, avatar: Express.Multer.File , cb: FileFilterCallback ) => {
+//   if (avatar.mimetype.startsWith('image/')) {
+//       cb(null, true); // Accept the file
+//   } else {
+//       cb( new Error('Only images are allowed!')); // Reject the file
+//   }
+// };
+// const upload = multer({ dest: "uploads/", fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 //controllers
 import {

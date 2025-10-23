@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import db from "../../../config/db/connection/dbConnection";
-import { eq, or, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { mobilePhoneGeneral, mobilePhoneTable } from "../../../config/db/schema/contents/electronics/mobilephones";
 
-export const getBrand = async(req: Request, res: Response):Promise<void> =>{
+export const getBrand = async(_req: Request, res: Response):Promise<void> =>{
     try {
          const result = await db
               .select({
@@ -74,7 +74,7 @@ export const getModel = async(req: Request, res: Response):Promise<void> =>{
 }
 
 
-export const getMobileGeneral = async(req: Request, res: Response): Promise<void> =>{
+export const getMobileGeneral = async(_req: Request, res: Response): Promise<void> =>{
      try {
           
         const result = await db

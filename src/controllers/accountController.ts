@@ -123,7 +123,7 @@ export const resendEmailVerificationLink = async(req: AuthRequest, res: Response
             throw new Error("Something went wrong while sending message.");
         }
 
-        const messageTokenLink = process.env.WEBSITE_URL + `?verify-email=${jwtForResendMessages}`;
+        const messageTokenLink = process.env.WEBSITE_URL as string + `?verify-email=${jwtForResendMessages}`;
 
         await emailClient(
             [findUser[0].email],
@@ -543,7 +543,6 @@ export const updateAccountPassword = async (req: AuthRequest, res: Response) => 
             newPassword,
             confirmPassword,
         }: { currentPassword: string; newPassword: string; confirmPassword: string } = req.body;
-        const updatedAt = new Date(Date.now()).toISOString();
 
         if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
             throw new Error("All fields are required");

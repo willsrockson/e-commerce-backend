@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, PgTable, } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 
 const timestamps = {
   updated_at: timestamp().defaultNow().notNull(),

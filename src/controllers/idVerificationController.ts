@@ -1,7 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../middleware/authorizationMiddleware";
-//import supabase from "../config/supabaseConn.js";
-import * as fs from 'fs'
 import db from "../config/db/connection/dbConnection";
 import { eq } from "drizzle-orm";
 import { UserTable } from "../config/db/schema/user.schema";
@@ -33,8 +31,8 @@ export const getUser = async (req: AuthRequest, res: Response) => {
 // The function below takes 4 pictures with two text, and stores them inside supabase storage/DB.
 
 
-export const postIdVerificationFiles = async (req: AuthRequest, res: Response): Promise<void> => {
-  const files = req.files;
+export const postIdVerificationFiles = async (req: AuthRequest, _res: Response): Promise<void> => {
+  //const files = req.files;
   const { ghanaCardNo, dateOfBirth } = req.body;
 
   console.log(ghanaCardNo, dateOfBirth);
@@ -111,9 +109,9 @@ export const postIdVerificationFiles = async (req: AuthRequest, res: Response): 
       //       }   
               
 
-    res.status(200).json({message: "ID submitted successfully"});
+    //res.status(200).json({message: "ID submitted successfully"});
 
   } catch (error) {
-    res.status(500).json([]);
+    //res.status(500).json([]);
   }
 };

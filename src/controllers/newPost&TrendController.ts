@@ -4,7 +4,7 @@ import { adsTable } from "../config/db/schema/ads/ads.schema";
 import { sql, eq, desc } from "drizzle-orm";
 import { UserTable } from "../config/db/schema/user.schema";
 
-export const NewPosts = async(req: Request, res: Response)=>{
+export const NewPosts = async(_req: Request, res: Response)=>{
 
    try {
 

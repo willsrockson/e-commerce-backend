@@ -6,7 +6,7 @@ import { mainCategoryTable, subCategoryTable } from "../../config/db/schema/cont
 
 
 
-export const getLocationAndTown = async(req: Request, res: Response)=> {
+export const getLocationAndTown = async(_req: Request, res: Response)=> {
        try {
 
           const result = await db
@@ -31,7 +31,7 @@ export const getLocationAndTown = async(req: Request, res: Response)=> {
     
 }
 
-export const getCategories = async(req: Request, res: Response)=> {
+export const getCategories = async(_req: Request, res: Response)=> {
        try {
 
           const result = await db

@@ -1,5 +1,5 @@
 import "dotenv/config"
-import {Resend } from 'resend';
+import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -16,7 +16,7 @@ export const emailClient = async(to:string[], subject:string, html: string): Pro
            throw new Error("We couldn’t send your email right now. Please try again.")
         }
        
-        //console.log({ generatedMessageId: data.id });
+        console.log(`Sent successfully with the id: ${data.id}`);
         
     } catch (error) {
         if(error instanceof Error){

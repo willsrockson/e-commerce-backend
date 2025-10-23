@@ -1,26 +1,9 @@
-import express, { Request } from "express";
+import express from "express";
 const router = express.Router();
-import multer, { FileFilterCallback } from "multer";
+import multer from "multer";
+import { uploadFilter } from "../../../lib/multer.filter";
 
-interface Images{
-    mimetype: string;
-}
-
-// File filter to accept only images
-const fileFilter = (req: Request, adImages: Images, cb: FileFilterCallback) => {
-    if (adImages.mimetype.startsWith('image/')) {
-        cb(null, true); // Accept the file
-    } else {
-        cb( new Error('You can upload images only!')); // Reject files that aren't image
-    }
-};
-
-const upload = multer({ dest: 'uploads/' , fileFilter , limits: { fileSize: 5 * 1024 * 1024, files: 7 }});
-
-
-
-
-
+const upload = uploadFilter({fileSize: 5 * 1024 * 1024, numOfFiles: 7})
 
 import { postMobilePhonesAds } from "../../../controllers/postAds/electronics/postMobilePhonesAdController";
 

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, serial, text, integer, timestamp, PgTable, boolean, uuid, jsonb, index, unique, } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, boolean, uuid, jsonb, index, unique, } from "drizzle-orm/pg-core";
 import { UserTable } from "../user.schema";
 
 const timestamps = {

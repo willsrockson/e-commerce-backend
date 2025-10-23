@@ -1,9 +1,6 @@
 import { Request, Response } from "express";
-//import sql from "../../../config/dbConn.js";
-//import pool from "../../../config/pgPool.js";
-//import supabase from "../../../config/supabaseConn.js";
-import sharp from "sharp";
-import { deleteAllFilesAfterUpload } from "../../../utils/deleteFilesInUploads";
+//import sharp from "sharp";
+//import { deleteAllFilesAfterUpload } from "../../../utils/deleteFilesInUploads";
 
 import { 
      mobilePhonesQuery,
@@ -383,7 +380,7 @@ export const getEachPhoneById = async (req: Request, res: Response) => {
 //  * @param {import('express').Request} req
 //  * @param {import('express').Response} res
 //  */
-export const editMobilePhoneDetails = async (req: AuthRequest, res: Response) => {
+export const editMobilePhoneDetails = async (_req: AuthRequest, _res: Response) => {
 //   const expectedPhotos = 7;
 
 //   try {

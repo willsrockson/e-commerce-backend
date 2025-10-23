@@ -1,1 +1,0 @@
-ALTER TABLE "mobile_phones_general" ADD COLUMN "verification_status" text[] DEFAULT ARRAY['Verified', 'Not Verified']::text[] NOT NULL;
