@@ -21,6 +21,7 @@ export const sendCustomCookies = async ({
         httpOnly: true,
         secure: process.env.NODE_ENV === Environment.PRODUCTION,
         sameSite: "lax",
+        domain: "https://tonmame.store",
         maxAge: maxAge, // 7 days expiration
         path: "/",
     });
@@ -36,6 +37,7 @@ export const clearCustomCookies = async ({
     res.clearCookie(name, {
         httpOnly: true,
         secure: process.env.NODE_ENV === Environment.PRODUCTION,
+        domain: "https://tonmame.store",
         sameSite: "lax",
     });
     res.status(401).json({ errorMessage: errorMessage, isValidUser: isValidUser });

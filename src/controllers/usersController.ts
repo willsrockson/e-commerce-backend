@@ -11,6 +11,7 @@ import { AuthRequest } from '../middleware/authorizationMiddleware';
 import myCacheSystem from '../lib/nodeCache';
 import { sendCustomCookies } from '../lib/cookies';
 import { ZloginType, ZSignUpType } from '../utils/zod.types';
+import { Environment } from '../types/enums';
 
 export const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
 
@@ -134,28 +135,7 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
 // Logic for registering user into the database.
 
 export const signUpUser = async(req: Request, res: Response): Promise<void> => {
-      //const data: UserType = await req.body;
       const emailSubject = "Verify your Email";
-
-      // if(!data.email?.trim() || !data.password?.trim() || !data.fullName?.trim() || !data.phonePrimary?.trim()){
-      //    res.status(400).json({errorMessage: "Field cannot be empty"});
-      //    return;
-      // }
-      // if(isValidEmail(data.email) == false ){
-      //   res.status(400).json({errorMessage: "Please enter a valid email"});
-      //   return;
-      // } 
-      // if(data.password.length < 6){
-      //   res.status(400).json({errorMessage: "Password must be 6 characters or more."});
-      //   return;
-      // } 
-      // if(data.phonePrimary.length < 10 || data.phonePrimary.length > 10 || isNaN(Number(data.phonePrimary))){
-      //   res.status(400).json({errorMessage: "Phone must be numbers and 10 digits."});
-      //   return;
-      // }
-       
-      
-      
        try {
          
          const data = ZSignUpType.safeParse(req.body);
@@ -270,8 +250,6 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
 }
 
 
-// Sign user out
-//domain: "tonmame.store"
 export const signOutUser = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
           const userData = req.userData?.userID.user_id;
@@ -291,7 +269,8 @@ export const signOutUser = async(req: AuthRequest, res: Response): Promise<void>
          myCacheSystem.del(updateTokenVersion[0].user_id);
          res.clearCookie("access_token", {
             httpOnly: true,
-            secure: process.env.SITE_MODE === "production",
+            secure: process.env.NODE_ENV === Environment.PRODUCTION,
+            domain: "https://tonmame.store",
             sameSite: "lax",
           });        
          res.status(200).json({ isValidUser: false })

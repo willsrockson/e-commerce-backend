@@ -20,13 +20,13 @@ import mobilePhonesRoute from "./routes/categories/electronics/mobilePhonesRoute
 import postMobilePhonesAdRoute from "./routes/postAds/electronics/postMobilePhonesAdRoute";
 
 
-// Makes sure anyone visiting the backend uses HTTPS
-// app.use((req, res, next) => {
-//   if (req.headers["x-forwarded-proto"] !== "https") {
-//     return res.redirect("https://" + req.headers.host + req.url);
-//   }
-//   next();
-// });
+//Makes sure anyone visiting the backend uses HTTPS
+app.use((req, res, next) => {
+  if (req.headers["x-forwarded-proto"] !== "https") {
+    return res.redirect("https://" + req.headers.host + req.url);
+  }
+  next();
+});
 
 app.use(cors({
     origin: ['https://tonmame.store', 'http://localhost:3000'],
