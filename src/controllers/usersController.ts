@@ -12,6 +12,7 @@ import myCacheSystem from '../lib/nodeCache';
 import { sendCustomCookies } from '../lib/cookies';
 import { ZloginType, ZSignUpType } from '../utils/zod.types';
 import { Environment } from '../types/enums';
+import { domainName } from '../utils/constants';
 
 export const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
 
@@ -87,7 +88,7 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
               .setProtectedHeader({ alg: 'HS256' })
               .setIssuedAt(new Date())
               .setIssuer('https://api.tonmame.store') // Update issuer to your actual domain
-              .setAudience('https://www.tonmame.store') // Set audience to frontend domain
+              .setAudience('https://tonmame.store') // Set audience to frontend domain
               .setExpirationTime('7d')
               .sign(secret);
 
@@ -183,7 +184,7 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
            .setProtectedHeader({ alg: "HS256" })
            .setIssuedAt(Date.now())
            .setIssuer('https://api.tonmame.store') // Update issuer to your actual domain
-           .setAudience('https://www.tonmame.store') // Set audience to frontend domain
+           .setAudience('https://tonmame.store') // Set audience to frontend domain
            .setExpirationTime("7d")
            .sign(secret);
 
@@ -270,8 +271,8 @@ export const signOutUser = async(req: AuthRequest, res: Response): Promise<void>
          res.clearCookie("access_token", {
             httpOnly: true,
             secure: process.env.NODE_ENV === Environment.PRODUCTION,
-            domain: "https://tonmame.store",
-            sameSite: "lax",
+            domain: domainName,
+            sameSite: "none",
           });        
          res.status(200).json({ isValidUser: false })
     } catch (error) {

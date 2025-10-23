@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { Response } from "express";
 import { Environment } from "../types/enums";
+import { domainName } from "../utils/constants";
 interface Cookies {
     name: string;
     res: Response;
@@ -11,6 +12,7 @@ interface RemoveCookies extends Pick<Cookies, 'name' | 'res'>{
     errorMessage: string | null;
     isValidUser?: boolean
 }
+
 export const sendCustomCookies = async ({
     res,
     name,
@@ -20,8 +22,8 @@ export const sendCustomCookies = async ({
     res.cookie(name, jwt, {
         httpOnly: true,
         secure: process.env.NODE_ENV === Environment.PRODUCTION,
-        sameSite: "lax",
-        domain: "https://tonmame.store",
+        sameSite: "none",
+        domain: domainName,
         maxAge: maxAge, // 7 days expiration
         path: "/",
     });
@@ -37,8 +39,8 @@ export const clearCustomCookies = async ({
     res.clearCookie(name, {
         httpOnly: true,
         secure: process.env.NODE_ENV === Environment.PRODUCTION,
-        domain: "https://tonmame.store",
-        sameSite: "lax",
+        domain: domainName,
+        sameSite: "none",
     });
     res.status(401).json({ errorMessage: errorMessage, isValidUser: isValidUser });
 };
