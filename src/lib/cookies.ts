@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { Response } from "express";
 import { Environment } from "../types/enums";
-import { domainName } from "../utils/constants";
 interface Cookies {
     name: string;
     res: Response;
@@ -23,7 +22,6 @@ export const sendCustomCookies = async ({
         httpOnly: true,
         secure: process.env.NODE_ENV === Environment.PRODUCTION,
         sameSite: "none",
-        domain: domainName,
         maxAge: maxAge, // 7 days expiration
         path: "/",
     });
@@ -39,7 +37,6 @@ export const clearCustomCookies = async ({
     res.clearCookie(name, {
         httpOnly: true,
         secure: process.env.NODE_ENV === Environment.PRODUCTION,
-        domain: domainName,
         sameSite: "none",
     });
     res.status(401).json({ errorMessage: errorMessage, isValidUser: isValidUser });

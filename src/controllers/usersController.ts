@@ -11,8 +11,6 @@ import { AuthRequest } from '../middleware/authorizationMiddleware';
 import myCacheSystem from '../lib/nodeCache';
 import { sendCustomCookies } from '../lib/cookies';
 import { ZloginType, ZSignUpType } from '../utils/zod.types';
-import { Environment } from '../types/enums';
-import { domainName } from '../utils/constants';
 
 export const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
 
@@ -20,7 +18,9 @@ export const recreateSessionForAlreadyLoginUsers = async (req: AuthRequest, res:
      
      try {
          const userID = req.userData?.userID.user_id; // get the ID of the logged in user
-         if(!userID) return;
+         if(!userID){
+            throw new Error("User not found")
+         }
           
           //Fetch user data
           const getUserData = await db
@@ -40,13 +40,9 @@ export const recreateSessionForAlreadyLoginUsers = async (req: AuthRequest, res:
           
      } catch (error) {
           if(error instanceof Error){
-           console.error(error.message);
           res.status(401).json({ isValidUser: false });
           return;
           }
-          console.error(String(error));
-          res.status(401).json({ isValidUser: false });
-          return;
      }
 
 }
@@ -257,7 +253,7 @@ export const signOutUser = async(req: AuthRequest, res: Response): Promise<void>
           if(!userData){
              throw new Error('User not found');
           }
-
+        
           const updateTokenVersion = await db
               .update(UserTable)
               .set({ token_version: sql`${UserTable.token_version} + 1` })
@@ -268,12 +264,7 @@ export const signOutUser = async(req: AuthRequest, res: Response): Promise<void>
              throw new Error('Logout fail');
           }
          myCacheSystem.del(updateTokenVersion[0].user_id);
-         res.clearCookie("access_token", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === Environment.PRODUCTION,
-            domain: domainName,
-            sameSite: "none",
-          });        
+         await sendCustomCookies({res: res, name: "access_token", maxAge: 0, jwt: ""})        
          res.status(200).json({ isValidUser: false })
     } catch (error) {
          res.status(500).json({errorMessage: "We couldn’t log you out securely. Please retry."})

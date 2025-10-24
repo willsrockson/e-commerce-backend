@@ -1,1 +1,0 @@
-export const domainName = ".tonmame.store";

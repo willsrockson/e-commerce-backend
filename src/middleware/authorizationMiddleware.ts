@@ -31,6 +31,7 @@ export const authorizationMiddleware = async (
     res: Response,
     next: NextFunction
 ): Promise<void> => {
+    const now = new Date()
     try {
         const getCookiesFromBrowser: AuthCookies = req.cookies;
 
@@ -77,9 +78,9 @@ export const authorizationMiddleware = async (
             myCacheSystem.set(
                 decodedAccessToken.payload.user_id,
                 setAnotherCache[0].token_version,
-                300
+                3600
             );
-            console.log("Cache set");
+            console.log(now.toLocaleTimeString(), "Login cache successfully set");
             req.userData = { isValidUser: true, userID: decodedAccessToken.payload };
             next();
             return;
