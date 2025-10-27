@@ -29,7 +29,8 @@ import {
   updateUserUnverifiedEmail,
   updateUserVerifiedEmail,
   resendEmailVerificationLink,
-  sendVerificationCodeToEmail
+  sendVerificationCodeToEmail,
+  removePhoneSecondary
 } from "../controllers/accountController";
 
 
@@ -44,8 +45,9 @@ router.post("/settings", authorizationMiddleware,(req: Request, res: Response)=>
     })
    
   },
-updateAccountSettings)
+updateAccountSettings);
 
+router.patch("/settings/remove/phone/secondary", authorizationMiddleware, removePhoneSecondary);
 router.post("/email/verification", emailVerification);
 router.get("/email/resend/verification/link", authorizationMiddleware, resendEmailVerificationLink);
 router.patch("/update/email/not/verified", authorizationMiddleware ,updateUserUnverifiedEmail);

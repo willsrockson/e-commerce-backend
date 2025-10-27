@@ -23,6 +23,7 @@ import { verificationCodeEmailHTML, verificationEmailHTML } from "../config/html
 import { generateSixDigitCode } from "../lib/number.generator";
 import myCacheSystem from "../lib/nodeCache";
 import { adsTable, savedAdTable } from "../config/db/schema/ads/ads.schema";
+import { GH_PHONE_REGEX } from "../utils/constants";
 
 
 enum EmailVerificationStatus{
@@ -149,6 +150,11 @@ export const resendEmailVerificationLink = async(req: AuthRequest, res: Response
 //Update Unverified Email By User... Maybe they mistakenly typed a wrong email
 export const updateUserUnverifiedEmail = async (req: AuthRequest, res: Response) => {
     try {
+        const userData = req.userData?.userID.user_id;
+        if (!userData) {
+            throw new Error("Login to perform this operation.");
+        }
+
         const emailSubject = "Verify your new email address";
         const { newEmail, confirmEmail }: { newEmail: string; confirmEmail: string } = req.body;
         if (
@@ -162,10 +168,7 @@ export const updateUserUnverifiedEmail = async (req: AuthRequest, res: Response)
         if (newEmail.trim() !== confirmEmail.trim()) {
             throw new Error("Email mismatch.");
         }
-        const userData = req.userData?.userID.user_id;
-        if (!userData) {
-            throw new Error("Login to perform this operation.");
-        }
+        
         const checkUserVerification = await db
             .select({
                 email: UserTable.email,
@@ -189,6 +192,15 @@ export const updateUserUnverifiedEmail = async (req: AuthRequest, res: Response)
         if (checkUserVerification[0].email === newEmail) {
             throw new Error("Update rejected, nothing changed.");
         }
+
+        const checkNewEmailExistence = await db
+          .select({email: UserTable.email})
+          .from(UserTable)
+          .where(eq(UserTable.email, newEmail));
+        
+        if(checkNewEmailExistence.length > 0){
+          throw new Error("Oops, a user with the new email address already exist.")
+        }  
 
         const changeEmail = await db
             .update(UserTable)
@@ -231,8 +243,6 @@ export const updateUserUnverifiedEmail = async (req: AuthRequest, res: Response)
             res.status(401).json({ errorMessage: error.message });
             return;
         }
-        res.status(401).json({ errorMessage: "Oops, something went wrong retry." });
-        return;
     }
 };
 
@@ -279,8 +289,6 @@ export const sendVerificationCodeToEmail = async(req: AuthRequest, res: Response
             res.status(401).json({ errorMessage: error.message });
             return;
         }
-        res.status(401).json({ errorMessage: "Oops, something went wrong retry." });
-        return;
   }
 }
 
@@ -371,9 +379,6 @@ export const updateUserVerifiedEmail = async(req: AuthRequest, res: Response)=>{
         res.status(401).json({errorMessage: error.message})
         return;
       }
-      res.status(401).json({errorMessage: "Oops, something went wrong retry."})
-      return
-    
   }
   
 }
@@ -419,9 +424,6 @@ export const accountSettings = async (req: AuthRequest , res: Response): Promise
       res.status(401).json([])
       return;
     }
-    console.error("From accountSettings ", String(error));
-    res.status(401).json([])
-    return
   }
 };
 
@@ -431,10 +433,10 @@ export const accountSettings = async (req: AuthRequest , res: Response): Promise
 export const updateAccountSettings = async (req: AuthRequest, res: Response): Promise<void> => {
     let photoUrl;
     try {
-        const userID = req.userData?.userID.user_id;
 
+        const userID = req.userData?.userID.user_id;
         if (!userID) {
-            return;
+            throw new Error("User not logged in")
         }
 
         const avatarFile = req.file;
@@ -492,9 +494,21 @@ export const updateAccountSettings = async (req: AuthRequest, res: Response): Pr
 
     if (store_name) dataToUpdate.store_name = store_name;
     if (full_name) dataToUpdate.full_name = full_name;
-    if (phone_primary) dataToUpdate.phone_primary = phone_primary;
-    if (phone_secondary) dataToUpdate.phone_secondary = phone_secondary;
+    if (phone_primary && GH_PHONE_REGEX.test(phone_primary)) dataToUpdate.phone_primary = phone_primary;
+    if (phone_secondary && GH_PHONE_REGEX.test(phone_secondary)) dataToUpdate.phone_secondary = phone_secondary;
     if (store_address) dataToUpdate.store_address = store_address;
+
+    if(phone_secondary){
+      // check if Primary phone is the same as secondary
+      const phoneChecker = await db
+       .select({ primaryPhone: UserTable.phone_primary})
+       .from(UserTable)
+       .where(eq(UserTable.user_id, userID));
+      
+      if( phoneChecker.length > 0 && phoneChecker[0]?.primaryPhone === String(phone_secondary)){
+          throw new Error("Oops! This number already exist. Please use another number.");
+      }  
+    }
 
     if (Object.keys(dataToUpdate).length > 0) {
         const updateUserData = await db
@@ -507,8 +521,12 @@ export const updateAccountSettings = async (req: AuthRequest, res: Response): Pr
             throw new Error("Profile update failed");
         }
     } else {
-        res.status(200).json({ successMessage: "Nothing changed", publicUrl: photoUrl });
-        return;
+         if(photoUrl){
+            res.status(200).json({ successMessage: "Profile picture updated successfully.", publicUrl: photoUrl });
+            return;
+         }
+         res.status(400).json({ errorMessage: "Nothing changed.", publicUrl: photoUrl });
+         return;
     }
 
     res.status(200).json({
@@ -518,14 +536,36 @@ export const updateAccountSettings = async (req: AuthRequest, res: Response): Pr
     } catch (error) {
         if (error instanceof Error) {
             console.error("error profile settings: ", error.message);
-            res.status(404).json({ errorMessage: error.message });
+            res.status(400).json({ errorMessage: error.message });
             return;
         }
-        console.log("error profile settings: ", String(error));
-        res.status(404).json({ errorMessage: "Sorry something went wrong." });
-        return;
     }
 };
+
+
+export const removePhoneSecondary = async(req: AuthRequest, res: Response)=>{
+       try {
+           const userID = req.userData?.userID.user_id;
+           if (!userID) {
+               throw new Error("User not found");
+           }
+           const updateUserData = await db
+               .update(UserTable)
+               .set({ phone_secondary: null })
+               .where(eq(UserTable.user_id, userID))
+               .returning({ user_id: UserTable.user_id });
+
+           if (!updateUserData || updateUserData.length === 0) {
+               throw new Error("Oops, we couldn't remove your number.");
+           }
+           res.status(200).json({successMessage: "Removed successfully!"});
+       } catch (error) {
+           if (error instanceof Error) {
+               res.status(400).json({ errorMessage: "Oops! something went wrong. Please retry."});
+           }
+           return;
+       }
+}
 
 
 
@@ -587,9 +627,6 @@ export const updateAccountPassword = async (req: AuthRequest, res: Response) => 
             res.status(401).json({ errorMessage: error.message });
             return;
         }
-        console.error("Password update function:", String(error)); 
-        res.status(401).json({ errorMessage: "Oops, something went wrong retry." });
-        return;
     }
 };
 
