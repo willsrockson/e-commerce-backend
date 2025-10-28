@@ -103,3 +103,145 @@ export const verificationCodeEmailHTML = `
 </html>
 `;
 
+
+// export const verificationCodeResetPasswordHTML = `
+// <!DOCTYPE html>
+// <html lang="en">
+//   <head>
+//     <meta charset="UTF-8" />
+//     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+//     <title>Email Verification</title>
+//   </head>
+//   <body style="font-family: Arial, sans-serif; background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe); margin: 0; padding: 40px;">
+//     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" 
+//       style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.08);">
+      
+//       <!-- Header -->
+//       <tr>
+//         <td style="background-color: #2563eb; padding: 20px; text-align: center;">
+//           <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">
+//             Tonmame
+//           </h1>
+//         </td>
+//       </tr>
+
+//       <!-- Body -->
+//       <tr>
+//         <td style="padding: 30px;">
+//           <h2 style="color: #111827; margin-bottom: 16px;">Hi [Full Name],</h2>
+//           <p style="color: #374151; line-height: 1.6; margin-bottom: 24px;">
+//             For your security, please use the verification code below to complete your email confirmation:
+//           </p>
+
+//           <!-- Code Box -->
+//           <div style="text-align: center; margin-bottom: 24px;">
+//             <p style="display: inline-block; background-color: #f3f4f6; color: #111827; padding: 16px 32px; border-radius: 8px; font-size: 28px; letter-spacing: 6px; font-weight: bold; box-shadow: inset 0 0 6px rgba(0,0,0,0.05);">
+//               [Verification Code]
+//             </p>
+//           </div>
+
+//           <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px; text-align: center;">
+//             This code will expire in <strong>5 minutes</strong>.  
+//           </p>
+
+//           <p style="margin-top: 32px; color: #374151;">
+//             Thanks,<br>
+//             The Tonmame Team
+//           </p>
+//         </td>
+//       </tr>
+
+//       <!-- Footer -->
+//       <tr>
+//         <td style="background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280;">
+//           You’re receiving this email because you recently signed up for Tonmame.  
+//           If you didn’t request this, you can safely ignore it.
+//         </td>
+//       </tr>
+//     </table>
+//   </body>
+// </html>
+// `;
+
+
+
+export const verificationCodeResetPasswordHTML = `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Password Reset Code</title>
+  </head>
+  <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; margin: 0; padding: 40px; color: #111827;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+      style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);">
+
+      <!-- Header -->
+      <tr>
+        <td style="background: linear-gradient(135deg, #2563eb, #3b82f6); padding: 30px 20px; text-align: center;">
+          <h1 style="color: #ffffff; font-size: 26px; font-weight: 700; margin: 0;">
+            Tonmame Password Reset
+          </h1>
+        </td>
+      </tr>
+
+      <!-- Body -->
+      <tr>
+        <td style="padding: 35px 30px;">
+          <h2 style="margin: 0 0 16px 0; color: #111827;">Hi [Full Name],</h2>
+          <p style="color: #374151; line-height: 1.6; margin-bottom: 24px;">
+            We received a request to reset your Tonmame account password.  
+            Use the code below to complete your password reset process:
+          </p>
+
+          <!-- Code Box -->
+          <div style="text-align: center; margin: 30px 0;">
+            <p style="
+              display: inline-block;
+              background-color: #eff6ff;
+              color: #1e3a8a;
+              padding: 18px 36px;
+              border-radius: 10px;
+              font-size: 32px;
+              letter-spacing: 8px;
+              font-weight: 800;
+              box-shadow: 0 0 10px rgba(37, 99, 235, 0.15);
+              border: 2px dashed #2563eb;
+            ">
+              [Verification Code]
+            </p>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; text-align: center; margin-bottom: 28px;">
+            This code is valid for <strong>5 minutes</strong>.  
+            If you didn’t request a password reset, please ignore this message.
+          </p>
+
+          <p style="color: #374151; margin-top: 32px;">
+            Warm regards,<br>
+            <strong>The Tonmame Team</strong>
+          </p>
+        </td>
+      </tr>
+
+      <!-- Divider -->
+      <tr>
+        <td>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 0;" />
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="background-color: #f9fafb; padding: 18px 20px; text-align: center; font-size: 13px; color: #6b7280;">
+          You’re receiving this email because you requested a password reset on Tonmame.  
+          If you didn’t make this request, no action is needed.
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+`;
+
+

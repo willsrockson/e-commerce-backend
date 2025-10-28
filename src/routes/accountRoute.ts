@@ -3,17 +3,6 @@ const router = express.Router();
 import { authorizationMiddleware } from "../middleware/authorizationMiddleware";
 import { uploadFilter } from "../lib/multer.filter";
 const upload = uploadFilter({fileSize: 5 * 1024 * 1024, numOfFiles: 1})
-// File filter to accept only images
-// const fileFilter = (req: Request, avatar: Express.Multer.File , cb: FileFilterCallback ) => {
-//   if (avatar.mimetype.startsWith('image/')) {
-//       cb(null, true); // Accept the file
-//   } else {
-//       cb( new Error('Only images are allowed!')); // Reject the file
-//   }
-// };
-// const upload = multer({ dest: "uploads/", fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
-
-//controllers
 import {
   accountSettings,
   deleteAccount,
@@ -30,12 +19,12 @@ import {
   updateUserVerifiedEmail,
   resendEmailVerificationLink,
   sendVerificationCodeToEmail,
-  removePhoneSecondary
+  removePhoneSecondary,
+  sendOtpCode,
+  resetPassword
 } from "../controllers/accountController";
 
-
 router.get("/settings", authorizationMiddleware, accountSettings);
-
 router.post("/settings", authorizationMiddleware,(req: Request, res: Response)=>{
     upload.single("avatar")(req, res, (err)=>{
       if(err){
@@ -46,30 +35,22 @@ router.post("/settings", authorizationMiddleware,(req: Request, res: Response)=>
    
   },
 updateAccountSettings);
-
 router.patch("/settings/remove/phone/secondary", authorizationMiddleware, removePhoneSecondary);
 router.post("/email/verification", emailVerification);
 router.get("/email/resend/verification/link", authorizationMiddleware, resendEmailVerificationLink);
 router.patch("/update/email/not/verified", authorizationMiddleware ,updateUserUnverifiedEmail);
 router.patch("/update/email/verified", authorizationMiddleware, updateUserVerifiedEmail);
 router.get("/email/request/code", authorizationMiddleware, sendVerificationCodeToEmail);
-
-
 router.patch("/update/password", authorizationMiddleware, updateAccountPassword);
-
-router.delete("/delete", authorizationMiddleware, deleteAccount)
-
+router.delete("/delete", authorizationMiddleware, deleteAccount);
 router.get("/me/ads", authorizationMiddleware, getAllAdvertsPostedByMe);
-
 router.delete('/me/delete/ad/:id', authorizationMiddleware, deleteAdvertPostedByMe);
-
 router.get('/me/deactivate/ad/:id', authorizationMiddleware, deactivateAdvertPostedByMe);
-
 router.get("/me/saved/ads", authorizationMiddleware , getAllSavedAdsByMe);
-
-router.delete("/me/delete/one/saved/ad/:id", authorizationMiddleware ,deleteOneSavedAdsByMe)
-
-router.delete("/me/delete/all/saved/ads", authorizationMiddleware, deleteAllSavedAdsByMe)
+router.delete("/me/delete/one/saved/ad/:id", authorizationMiddleware ,deleteOneSavedAdsByMe);
+router.delete("/me/delete/all/saved/ads", authorizationMiddleware, deleteAllSavedAdsByMe);
+router.post("/me/reset/password/send/otp", sendOtpCode);
+router.post("/me/reset/password", resetPassword);
 
 
 

@@ -12,18 +12,18 @@ import {
        } from "../utils/sql.queries/account/ads-posted-by-me/adsPostedByMe";
 import db from "../config/db/connection/dbConnection";
 import { AvatarTable, UserTable } from "../config/db/schema/user.schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { jwtVerify, SignJWT } from "jose";
 import { secret } from "./usersController";
 import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads";
 import { hashUserId } from "../utils/crypto.hashing";
 import { isValidEmail } from "../lib/email.checker";
 import { emailClient } from "../config/email.sender";
-import { verificationCodeEmailHTML, verificationEmailHTML } from "../config/html.templates";
+import { verificationCodeEmailHTML, verificationCodeResetPasswordHTML, verificationEmailHTML } from "../config/html.templates";
 import { generateSixDigitCode } from "../lib/number.generator";
 import myCacheSystem from "../lib/nodeCache";
 import { adsTable, savedAdTable } from "../config/db/schema/ads/ads.schema";
-import { GH_PHONE_REGEX } from "../utils/constants";
+import { EMAIL_GHANA_PHONE_REGEX, EMAIL_REGEX, GH_PHONE_REGEX, SIX_DIGIT_CODE_REGEX } from "../utils/constants";
 
 
 enum EmailVerificationStatus{
@@ -976,3 +976,110 @@ export const deleteAllSavedAdsByMe = async (req: AuthRequest, res: Response): Pr
     }
   }
 };
+
+
+export const sendOtpCode = async(req:Request, res: Response)=>{
+   try {
+       const emailSubject = "Tonmame Reset Code";
+       const { emailOrPhone } = req.body as { emailOrPhone: string; };
+       if(!emailOrPhone?.trim()){
+         throw new Error("Please enter a valid email or phone.");
+       }
+       if(!EMAIL_GHANA_PHONE_REGEX.test(emailOrPhone) ){
+          throw new Error("Please enter a valid email or phone.");
+       }
+
+       const findUser = await db
+           .select({ user_id: UserTable.user_id, full_name: UserTable.full_name })
+           .from(UserTable)
+           .where(or(eq(UserTable.email, emailOrPhone), eq(UserTable.phone_primary, emailOrPhone)));
+       
+       if(findUser.length === 0){
+          throw new Error("User not found.")
+       }
+       const optCode = generateSixDigitCode()
+       myCacheSystem.set(findUser[0]?.user_id+emailOrPhone, { code: optCode , timeout: Date.now() }, 300);
+       
+       if (EMAIL_REGEX.test(emailOrPhone)) {
+           await emailClient(
+               [emailOrPhone],
+               emailSubject,
+               verificationCodeResetPasswordHTML
+                   .replace("[Full Name]", findUser[0].full_name.split(" ")[0])
+                   .replaceAll("[Verification Code]", optCode.toString())
+           );
+       }else if(GH_PHONE_REGEX.test(emailOrPhone)){
+           myCacheSystem.del(findUser[0]?.user_id+emailOrPhone);
+           throw new Error("We support the use of Email only for now.");
+       }
+       res.status(200).json({successMessage: "OTP code sent successfully"});
+       
+   } catch (error) {
+      if(error instanceof Error){
+        res.status(400).json({ errorMessage: error.message });
+      }
+      return;
+   }
+
+}
+
+export const resetPassword = async(req:Request, res:Response)=>{
+       try {
+           const { emailOrPhone, otpCode, newPassword } = req.body as { emailOrPhone: string; otpCode: string; newPassword:string; };
+           if (!emailOrPhone?.trim()) {
+               throw new Error("Please enter a valid email or phone.");
+           }
+           if(!otpCode || !SIX_DIGIT_CODE_REGEX.test(otpCode)){
+               throw new Error("Invalid OTP Code.")
+           }
+           if (!EMAIL_GHANA_PHONE_REGEX.test(emailOrPhone)) {
+               throw new Error("Please enter a valid email or phone.");
+           }
+           if(!newPassword?.trim() || newPassword?.length < 6){
+              throw new Error("Please enter a valid password.");
+           }
+
+           const findUser = await db
+               .select({ user_id: UserTable.user_id })
+               .from(UserTable)
+               .where(
+                   or(eq(UserTable.email, emailOrPhone), eq(UserTable.phone_primary, emailOrPhone))
+               );
+
+           if (findUser?.length === 0) {
+               throw new Error("User not found.");
+           }
+
+           const cacheData = myCacheSystem.get(findUser[0]?.user_id+emailOrPhone) as { code: number, timeout: number };
+           if(!cacheData){
+              throw new Error("Code is expired or not available. Please request for another one.");
+           }
+           
+           console.log(cacheData);
+           
+           if(cacheData.code !== Number(otpCode)){
+              throw new Error("Invalid code, please retry.");
+           }
+
+           const salt = await bcrypt.genSalt(Number(process.env.SALT));
+           const hash = await bcrypt.hash(newPassword, salt);
+
+           const updatePassword = await db
+            .update(UserTable)
+            .set({password: hash})
+            .where(eq(UserTable.user_id, findUser[0]?.user_id))
+            .returning({user_id: UserTable.user_id});
+          
+          if(updatePassword.length === 0){
+             throw new Error("Sorry, we couldn't update your password. Please retry.")
+          }
+          myCacheSystem.del(findUser[0]?.user_id+emailOrPhone);
+
+          res.status(200).json({ successMessage: "Password changed successfully."})
+       } catch (error) {
+           if (error instanceof Error) {
+               res.status(400).json({ errorMessage: error.message });
+           }
+           return;
+       }
+}
