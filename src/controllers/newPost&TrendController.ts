@@ -37,7 +37,6 @@ export const NewPosts = async(_req: Request, res: Response)=>{
       
    } catch (error) {
       if(error instanceof Error){
-         console.log(String(error));
          res.status(400).json([])
          return;
       }

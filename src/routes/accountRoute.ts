@@ -21,20 +21,21 @@ import {
   sendVerificationCodeToEmail,
   removePhoneSecondary,
   sendOtpCode,
-  resetPassword
+  resetPassword,
+  updateProfilePicture
 } from "../controllers/accountController";
 
 router.get("/settings", authorizationMiddleware, accountSettings);
-router.post("/settings", authorizationMiddleware,(req: Request, res: Response)=>{
+router.post("/settings", authorizationMiddleware, upload.none(), updateAccountSettings);
+router.post("/settings/profile/picture", authorizationMiddleware,(req: Request, res: Response)=>{
     upload.single("avatar")(req, res, (err)=>{
       if(err){
         return res.status(401).json({ message: err.message });
       }
-      updateAccountSettings(req, res)
+      updateProfilePicture(req, res)
     })
    
-  },
-updateAccountSettings);
+  });
 router.patch("/settings/remove/phone/secondary", authorizationMiddleware, removePhoneSecondary);
 router.post("/email/verification", emailVerification);
 router.get("/email/resend/verification/link", authorizationMiddleware, resendEmailVerificationLink);

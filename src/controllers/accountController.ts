@@ -428,114 +428,138 @@ export const accountSettings = async (req: AuthRequest , res: Response): Promise
 };
 
 
+export const updateProfilePicture = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const userID = req.userData?.userID.user_id;
+        const avatarFile = req.file;
+        if (!userID) {
+            throw new Error("User not logged in");
+        }
+
+        if (!avatarFile) {
+            throw new Error("No image selected");
+        }
+        const outputBuffer = await sharp(avatarFile.path)
+            .webp({ quality: 80 })
+            .rotate()
+            .resize(460, 460)
+            .toBuffer();
+
+        const hashResult = hashUserId(userID);
+        const { error } = await supabase.storage
+            .from("ecommerce")
+            .update(`avatars/${hashResult}/${hashResult + ".webp"}`, outputBuffer, {
+                upsert: true,
+            });
+        deleteAllFilesAfterUpload("./uploads");
+        if (error) throw error;
+
+        //Get public URL
+        const { data } = supabase.storage
+            .from("ecommerce")
+            .getPublicUrl(`avatars/${hashResult}/${hashResult + ".webp"}`);
+
+        let photoUrl = data?.publicUrl;
+
+        const userExistence = await db
+            .select({ user_id: AvatarTable.user_id })
+            .from(AvatarTable)
+            .where(eq(AvatarTable.user_id, userID));
+
+        if (userExistence[0]?.user_id) {
+            let getUpdatedAt = await db
+                .update(AvatarTable)
+                .set({ image_url: data.publicUrl, updated_at: new Date() })
+                .where(eq(AvatarTable.user_id, userID))
+                .returning({ updated_at: AvatarTable.updated_at });
+             
+            if(getUpdatedAt.length === 0) throw new Error('Update to image url failed.')    
+
+            photoUrl = photoUrl + "?v=" + getUpdatedAt[0].updated_at;
+        } else {
+            await db.insert(AvatarTable).values({ image_url: data.publicUrl, user_id: userID });
+        }
+
+        res.status(200).json({
+            successMessage: "Profile picture updated successfully.",
+            publicUrl: photoUrl,
+        });
+    } catch (error) {
+        if (error instanceof Error) {
+            res.status(400).json({ errorMessage: error.message });
+        }
+    }
+};
+
+
 
 //Update Profile information
 export const updateAccountSettings = async (req: AuthRequest, res: Response): Promise<void> => {
-    let photoUrl;
     try {
-
         const userID = req.userData?.userID.user_id;
         if (!userID) {
-            throw new Error("User not logged in")
+            throw new Error("User not logged in");
         }
 
-        const avatarFile = req.file;
         const { store_name, full_name, phone_primary, phone_secondary, store_address } = req.body;
 
-        if (avatarFile) {
-            const outputBuffer = await sharp(avatarFile.path)
-                .webp({ quality: 80 })
-                .rotate()
-                .resize(460, 460)
-                .toBuffer();
+        let dataToUpdate: {
+            store_name?: string;
+            full_name?: string;
+            phone_primary?: string;
+            phone_secondary?: string;
+            store_address?: string;
+        } = {};
 
-            const hashResult = hashUserId(userID);
-            const { error } = await supabase.storage
-                .from("ecommerce")
-                .update(`avatars/${hashResult}/${hashResult + ".webp"}`, outputBuffer, {
-                    upsert: true,
-                });
-            deleteAllFilesAfterUpload("./uploads");
-            if (error) throw error;
+        if (store_name) dataToUpdate.store_name = store_name;
+        if (full_name) dataToUpdate.full_name = full_name;
+        if (phone_primary && GH_PHONE_REGEX.test(phone_primary))
+            dataToUpdate.phone_primary = phone_primary;
+        if (phone_secondary && GH_PHONE_REGEX.test(phone_secondary))
+            dataToUpdate.phone_secondary = phone_secondary;
+        if (store_address) dataToUpdate.store_address = store_address;
 
-            //Get public URL
-            const { data } = supabase.storage
-                .from("ecommerce")
-                .getPublicUrl(`avatars/${hashResult}/${hashResult + ".webp"}`);
+        if (phone_secondary) {
+            // check if Primary phone is the same as secondary
+            const phoneChecker = await db
+                .select({ primaryPhone: UserTable.phone_primary })
+                .from(UserTable)
+                .where(eq(UserTable.user_id, userID));
 
-            photoUrl = data?.publicUrl;
-
-            const userExistence = await db
-                .select({ user_id: AvatarTable.user_id })
-                .from(AvatarTable)
-                .where(eq(AvatarTable.user_id, userID));
-
-            if (userExistence[0]?.user_id) {
-                let getUpdatedAt = await db
-                    .update(AvatarTable)
-                    .set({ image_url: data.publicUrl, updated_at: new Date() })
-                    .where(eq(AvatarTable.user_id, userID))
-                    .returning({ updated_at: AvatarTable.updated_at });
-
-                photoUrl = photoUrl + "?v=" + getUpdatedAt[0].updated_at;
-            } else {
-                await db.insert(AvatarTable).values({ image_url: data.publicUrl, user_id: userID });
+            if (
+                phoneChecker.length > 0 &&
+                phoneChecker[0]?.primaryPhone === String(phone_secondary)
+            ) {
+                throw new Error("Oops! This number already exist. Please use another number.");
             }
         }
 
+
+        console.log(store_name);
         
-    let dataToUpdate: {
-        store_name?: string;
-        full_name?: string;
-        phone_primary?: string;
-        phone_secondary?: string;
-        store_address?: string;
-    } = {};
 
-    if (store_name) dataToUpdate.store_name = store_name;
-    if (full_name) dataToUpdate.full_name = full_name;
-    if (phone_primary && GH_PHONE_REGEX.test(phone_primary)) dataToUpdate.phone_primary = phone_primary;
-    if (phone_secondary && GH_PHONE_REGEX.test(phone_secondary)) dataToUpdate.phone_secondary = phone_secondary;
-    if (store_address) dataToUpdate.store_address = store_address;
+        if (Object.keys(dataToUpdate).length > 0) {
+            const updateUserData = await db
+                .update(UserTable)
+                .set(dataToUpdate)
+                .where(eq(UserTable.user_id, userID))
+                .returning({ user_id: UserTable.user_id });
 
-    if(phone_secondary){
-      // check if Primary phone is the same as secondary
-      const phoneChecker = await db
-       .select({ primaryPhone: UserTable.phone_primary})
-       .from(UserTable)
-       .where(eq(UserTable.user_id, userID));
-      
-      if( phoneChecker.length > 0 && phoneChecker[0]?.primaryPhone === String(phone_secondary)){
-          throw new Error("Oops! This number already exist. Please use another number.");
-      }  
-    }
-
-    if (Object.keys(dataToUpdate).length > 0) {
-        const updateUserData = await db
-            .update(UserTable)
-            .set(dataToUpdate)
-            .where(eq(UserTable.user_id, userID))
-            .returning({ user_id: UserTable.user_id });
-
-        if (!updateUserData || updateUserData.length === 0) {
-            throw new Error("Profile update failed");
-        }
-    } else {
-         if(photoUrl){
-            res.status(200).json({ successMessage: "Profile picture updated successfully.", publicUrl: photoUrl });
+            if (updateUserData.length === 0) {
+                throw new Error("Profile update failed");
+            }
+        } else {
+            res.status(200).json({
+                successMessage: "Nothing changed",
+            });
             return;
-         }
-         res.status(400).json({ errorMessage: "Nothing changed.", publicUrl: photoUrl });
-         return;
-    }
+        }
 
-    res.status(200).json({
-        successMessage: "Profile updated successfully",
-        publicUrl: photoUrl,
-    });
+        res.status(200).json({
+            successMessage: "Profile updated successfully",
+        });
     } catch (error) {
         if (error instanceof Error) {
-            console.error("error profile settings: ", error.message);
             res.status(400).json({ errorMessage: error.message });
             return;
         }
