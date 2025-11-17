@@ -51,6 +51,19 @@ app.use("/api/fetch/", mobilePhonesRoute);
 // Posting of ads routes
 app.use("/api/upload/categories/electronics", authorizationMiddleware, postMobilePhonesAdRoute);
 
+//This is nothing but an api call to Json place holder to keep the server on. 
+// If not render will shut it down after 15 minutes of no api call to the backend.
+setInterval(async()=>{
+   const keepBackendAlive = async()=>{
+      fetch('https://jsonplaceholder.typicode.com/todos/1')
+      .then(response => response.json())
+      .then(_json => console.log('Keep the server alive'))
+      .catch((error)=>{console.log(error.message);
+      });
+   }
+   keepBackendAlive();
+}, 720000 )
+
 
 app.listen(PORT, ()=>{
     console.log(`Server is running on ${PORT}`);
