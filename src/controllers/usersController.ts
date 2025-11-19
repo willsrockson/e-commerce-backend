@@ -1,3 +1,4 @@
+import { NextFunction } from 'express';
 import { Request, Response } from 'express';
 import db from '../config/db/connection/dbConnection';
 import bcrypt from "bcryptjs";
@@ -11,54 +12,50 @@ import { AuthRequest } from '../middleware/authorizationMiddleware';
 import myCacheSystem from '../lib/nodeCache';
 import { sendCustomCookies } from '../lib/cookies';
 import { ZloginType, ZSignUpType } from '../utils/zod.types';
+import { AppError } from '../utils/AppError';
+import { ErrorLabel, HttpStatus } from '../types/enums';
+import { secret } from '../utils/constants';
 
-export const secret = new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`);
-
-export const recreateSessionForAlreadyLoginUsers = async (req: AuthRequest, res: Response): Promise<void> =>{
+export const recreateSessionForAlreadyLoginUsers = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> =>{
      
      try {
          const userID = req.userData?.userID.user_id; // get the ID of the logged in user
          if(!userID){
-            throw new Error("User not found")
+            throw new AppError(HttpStatus.NOT_FOUND,'User not found', ErrorLabel.USER_NOT_FOUND);
          }
-          
           //Fetch user data
-          const getUserData = await db
-              .select({
-                  full_name: UserTable.full_name,
-                  image_url: AvatarTable.image_url
-              })
-              .from(UserTable)
-              .leftJoin(AvatarTable, eq(UserTable.user_id, AvatarTable.user_id))
-              .where(eq(UserTable.user_id, userID));
+        const getUserData = await db
+          .select({
+              full_name: UserTable.full_name,
+              image_url: AvatarTable.image_url
+          })
+          .from(UserTable)
+          .leftJoin(AvatarTable, eq(UserTable.user_id, AvatarTable.user_id))
+          .where(eq(UserTable.user_id, userID));
           
-          if(getUserData.length === 0){
-             throw new Error("Error fetching user data!");
-          }
+        if(getUserData.length === 0){
+            throw new AppError(HttpStatus.NOT_FOUND, 'Error fetching user data.', ErrorLabel.USER_NOT_FOUND);
+        }
         
-      res.status(200).json({ data: getUserData, isValidUser: true });
+      res.status(200).json({ data: getUserData, isValidUser: true, success: true });
           
      } catch (error) {
-          if(error instanceof Error){
-          res.status(401).json({ isValidUser: false });
-          return;
-          }
+        next(error);
+        return;
      }
 
 }
 
 
 // Logic for logging the user in.
-export const loginUser = async(req: Request, res: Response): Promise<void> => {
+export const loginUser = async(req: Request, res: Response, next: NextFunction): Promise<void> => {
       
       try {
            const data = ZloginType.safeParse(req.body)
         
             if(!data.success){
-               throw new Error(data.error.issues[0].message)
+               throw new AppError(HttpStatus.BAD_REQUEST, data.error.issues[0].message, ErrorLabel.INVALID_INPUT)
             }
-            
-
              //checks whether user already exist
             const user = await db
                 .select({ user_id: UserTable.user_id, password: UserTable.password, token_version: UserTable.token_version })
@@ -71,13 +68,13 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
                 );
               
             if(!user[0]){     
-              throw new Error("User doesn't exist");               
+              throw new AppError(HttpStatus.NOT_FOUND, "User doesn't exist.", ErrorLabel.INVALID_CREDENTIALS);               
             }
 
            const checkPassword = await bcrypt.compare(data.data.password, user[0].password);
 
            if(!checkPassword) {
-              throw new Error("No record match");
+              throw new AppError(HttpStatus.NOT_FOUND,'Invalid credentials.', ErrorLabel.INVALID_CREDENTIALS);
            }
            
            const jwtToken = await new SignJWT({ user_id: user[0].user_id, token_version: user[0].token_version })
@@ -89,7 +86,7 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
               .sign(secret);
 
            if(!jwtToken){
-             throw new Error("Something happened please retry!");
+             throw new AppError(HttpStatus.BAD_REQUEST, 'Authentication failed. Please try again.', ErrorLabel.INVALID_TOKEN);
            }
            
 
@@ -106,7 +103,7 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
               .where(eq(UserTable.user_id, user[0].user_id));
 
            if(!getUserData || getUserData.length === 0){
-            throw new Error("Error fetching user data!");
+            throw new AppError(HttpStatus.NOT_FOUND, 'An error occurred while fetching user data', ErrorLabel.USER_NOT_FOUND);
           }
            
          await sendCustomCookies({
@@ -115,14 +112,11 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
             jwt: jwtToken
           })  
            
-          res.status(200).json({ data: getUserData[0], isValidUser: true }) 
+          res.status(200).json({ data: getUserData[0], success: true }) 
       
-      } catch (err: unknown) {       
-          if(err instanceof Error){
-            console.log(err);
-            res.status(404).json({ errorMessage: err.message, isValidUser: false });
-            return
-          }
+      } catch (error) {  
+          next(error);
+          return;
       }
 
 }
@@ -131,14 +125,14 @@ export const loginUser = async(req: Request, res: Response): Promise<void> => {
 
 // Logic for registering user into the database.
 
-export const signUpUser = async(req: Request, res: Response): Promise<void> => {
+export const signUpUser = async(req: Request, res: Response, next: NextFunction): Promise<void> => {
       const emailSubject = "Verify your Email";
        try {
          
          const data = ZSignUpType.safeParse(req.body);
 
           if(!data.success){
-               throw new Error(data.error.issues[0].message)
+               throw new AppError(HttpStatus.BAD_REQUEST, data.error.issues[0].message, ErrorLabel.INVALID_INPUT)
             }
 
          //checks whether user already exist
@@ -150,12 +144,13 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
              );
          
          if (checkUserExistence[0]?.user_id) {
-           throw new Error("User already exist");
+           throw new AppError(HttpStatus.CONFLICT, "User already exist", ErrorLabel.USER_EXISTS);
          }
 
          //Create account
          const salt = await bcrypt.genSalt(Number(process.env.SALT));
          const hash = await bcrypt.hash(data.data.password, salt);
+
          //Create user object
          const user: typeof UserTable.$inferInsert = {
               full_name: data.data.fullName,
@@ -173,7 +168,7 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
             });
            
         if (createUser?.length === 0 || !createUser[0]?.user_id) {
-           throw new Error("Failed creating user please retry.");
+           throw new AppError(HttpStatus.INTERNAL_SERVER_ERROR,'An error occurred while creating your account.', ErrorLabel.INTERNAL_ERROR);
         }
          // Generates JWT token after creating an account
         const jwtToken = await new SignJWT({ user_id: createUser[0].user_id, token_version: createUser[0].token_version })
@@ -185,7 +180,7 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
            .sign(secret);
 
          if (!jwtToken) {
-           throw new Error("Something went wrong, please login.");
+           throw new AppError(HttpStatus.BAD_REQUEST, 'Authentication failed. Please try again.', ErrorLabel.INVALID_TOKEN);
          }
 
          const getUserData = await db
@@ -197,12 +192,10 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
               })
               .from(UserTable)
               .leftJoin(AvatarTable, eq(UserTable.user_id, AvatarTable.user_id))
-              .where(eq(UserTable.user_id, createUser[0].user_id));
- 
-               
+              .where(eq(UserTable.user_id, createUser[0].user_id));         
 
         if(getUserData.length === 0 || !getUserData){
-          throw new Error("Sorry, we couldn't sign you in!");
+           throw new AppError(HttpStatus.NOT_FOUND, 'An error occurred while fetching user data', ErrorLabel.USER_NOT_FOUND);
         }
          
         //generate a token for email verification
@@ -216,7 +209,7 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
            .sign(secret);
         
            if (!jwtForResendMessages) {
-           throw new Error("Something went wrong while sending message.");
+           throw new AppError(HttpStatus.BAD_REQUEST,"We couldn’t send your verification email. Please try again.", ErrorLabel.INVALID_TOKEN);
          }
 
         const messageTokenLink = process.env.WEBSITE_URL + `?verify-email=${jwtForResendMessages}`;
@@ -235,23 +228,26 @@ export const signUpUser = async(req: Request, res: Response): Promise<void> => {
           })   
 
          
-         
-         res.status(201).json({ successMessage: "Account created successfully", data: getUserData[0], isValidUser: true }); 
+         req.log.info("User account created successfully");
+         res.status(201).json({
+             message: "Account created successfully",
+             data: getUserData[0],
+             isValidUser: true,
+             success: true
+         }); 
 
-        } catch (err: unknown) {   
-             if(err instanceof Error){
-               res.status(409).json({ errorMessage: err.message, isValidUser: false });
-               return;
-             }
-          }     
+        } catch (error) {   
+            next(error);
+            return;
+        }     
 }
 
 
-export const signOutUser = async(req: AuthRequest, res: Response): Promise<void> => {
+export const signOutUser = async(req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
           const userData = req.userData?.userID.user_id;
           if(!userData){
-             throw new Error('User not found');
+             throw new AppError(HttpStatus.NOT_FOUND, 'Login to perform this operation.', ErrorLabel.USER_NOT_FOUND);
           }
         
           const updateTokenVersion = await db
@@ -261,13 +257,13 @@ export const signOutUser = async(req: AuthRequest, res: Response): Promise<void>
               .returning({user_id: UserTable.user_id});
           
           if(updateTokenVersion.length === 0){
-             throw new Error('Logout fail');
+             throw new AppError(HttpStatus.INTERNAL_SERVER_ERROR,'Logout failed.', ErrorLabel.INTERNAL_ERROR);
           }
          myCacheSystem.del(updateTokenVersion[0].user_id);
-         await sendCustomCookies({res: res, name: "access_token", maxAge: 0, jwt: ""})        
-         res.status(200).json({ isValidUser: false })
+         await sendCustomCookies({res: res, name: "access_token", maxAge: 0, jwt: ""});       
+         res.status(200).json({ isValidUser: false , success: true });
     } catch (error) {
-         res.status(500).json({errorMessage: "We couldn’t log you out securely. Please retry."})
-         return;
+        next(error);
+        return;
     }  
 }

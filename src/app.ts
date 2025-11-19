@@ -1,6 +1,7 @@
 import express, { Express } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import pinoLogger from "./middleware/logger";
 
 const app: Express = express();
 const PORT = process.env.PORT || 5001;
@@ -19,19 +20,23 @@ import mobilePhonesRoute from "./routes/categories/electronics/mobilePhonesRoute
 //Posting of ads route imports
 import postMobilePhonesAdRoute from "./routes/postAds/electronics/postMobilePhonesAdRoute";
 
+
 app.use(cors({
     origin: ['https://tonmame.store', 'http://localhost:3000'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
+//This makes sure Ip's behind proxies are still logged
+app.set('trust proxy', true);
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true }));
 app.use(cookieParser());
+app.use(pinoLogger);
 
 //middleware
 import { authorizationMiddleware } from "./middleware/authorizationMiddleware";
+import { errorHandler } from "./middleware/errorHandler";
 
 
 //General routes
@@ -62,8 +67,9 @@ setInterval(async()=>{
       });
    }
    keepBackendAlive();
-}, 720000 )
+}, 300000 );
 
+app.use(errorHandler);
 
 app.listen(PORT, ()=>{
     console.log(`Server is running on ${PORT}`);

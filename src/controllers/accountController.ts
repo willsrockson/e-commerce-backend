@@ -14,7 +14,7 @@ import db from "../config/db/connection/dbConnection";
 import { AvatarTable, UserTable } from "../config/db/schema/user.schema";
 import { and, eq, or } from "drizzle-orm";
 import { jwtVerify, SignJWT } from "jose";
-import { secret } from "./usersController";
+import { secret } from "../utils/constants";
 import { deleteAllFilesAfterUpload } from "../utils/deleteFilesInUploads";
 import { hashUserId } from "../utils/crypto.hashing";
 import { isValidEmail } from "../lib/email.checker";
@@ -533,9 +533,6 @@ export const updateAccountSettings = async (req: AuthRequest, res: Response): Pr
                 throw new Error("Oops! This number already exist. Please use another number.");
             }
         }
-
-
-        console.log(store_name);
         
 
         if (Object.keys(dataToUpdate).length > 0) {

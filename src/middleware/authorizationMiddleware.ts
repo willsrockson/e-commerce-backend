@@ -17,7 +17,7 @@ export interface AuthRequest extends Request {
     };
 }
 
-interface JWTAddedTypes extends JWTPayload {
+export interface JWTAddedTypes extends JWTPayload {
     user_id?: string;
     token_version?: number;
 }
