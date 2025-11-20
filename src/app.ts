@@ -30,7 +30,7 @@ app.use(cors({
 app.set('trust proxy', true);
 
 app.use(express.json());
-app.use(express.urlencoded({extended: true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(pinoLogger);
 
@@ -67,7 +67,7 @@ setInterval(async()=>{
       });
    }
    keepBackendAlive();
-}, 300000 );
+}, 700000 );
 
 app.use(errorHandler);
 

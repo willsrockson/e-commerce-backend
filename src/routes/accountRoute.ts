@@ -1,4 +1,4 @@
-import express,{Request, Response} from "express";
+import express,{NextFunction, Request, Response} from "express";
 const router = express.Router();
 import { authorizationMiddleware } from "../middleware/authorizationMiddleware";
 import { uploadFilter } from "../lib/multer.filter";
@@ -27,12 +27,13 @@ import {
 
 router.get("/settings", authorizationMiddleware, accountSettings);
 router.post("/settings", authorizationMiddleware, upload.none(), updateAccountSettings);
-router.post("/settings/profile/picture", authorizationMiddleware,(req: Request, res: Response)=>{
+router.post("/settings/profile/picture", authorizationMiddleware,(req: Request, res: Response, next: NextFunction)=>{
     upload.single("avatar")(req, res, (err)=>{
       if(err){
-        return res.status(401).json({ message: err.message });
+        next(err)
+        return;
       }
-      updateProfilePicture(req, res)
+      updateProfilePicture(req, res, next)
     })
    
   });

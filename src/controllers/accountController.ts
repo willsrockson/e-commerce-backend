@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import supabase from "../config/db/connection/supabaseStorageConn";
 import sharp from "sharp";
 import "dotenv/config"
@@ -24,6 +24,8 @@ import { generateSixDigitCode } from "../lib/number.generator";
 import myCacheSystem from "../lib/nodeCache";
 import { adsTable, savedAdTable } from "../config/db/schema/ads/ads.schema";
 import { EMAIL_GHANA_PHONE_REGEX, EMAIL_REGEX, GH_PHONE_REGEX, SIX_DIGIT_CODE_REGEX } from "../utils/constants";
+import { AppError } from "../utils/AppError";
+import { ErrorLabel, HttpStatus } from "../types/enums";
 
 
 enum EmailVerificationStatus{
@@ -428,16 +430,16 @@ export const accountSettings = async (req: AuthRequest , res: Response): Promise
 };
 
 
-export const updateProfilePicture = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateProfilePicture = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userID = req.userData?.userID.user_id;
         const avatarFile = req.file;
         if (!userID) {
-            throw new Error("User not logged in");
+            throw new AppError(HttpStatus.FORBIDDEN,"User not logged in", ErrorLabel.FORBIDDEN);
         }
 
         if (!avatarFile) {
-            throw new Error("No image selected");
+            throw new AppError(HttpStatus.BAD_REQUEST,'No image selected', ErrorLabel.UPLOAD_FAILED);
         }
         const outputBuffer = await sharp(avatarFile.path)
             .webp({ quality: 80 })
@@ -451,8 +453,7 @@ export const updateProfilePicture = async (req: AuthRequest, res: Response): Pro
             .update(`avatars/${hashResult}/${hashResult + ".webp"}`, outputBuffer, {
                 upsert: true,
             });
-        deleteAllFilesAfterUpload("./uploads");
-        if (error) throw error;
+        if (error) throw new AppError(HttpStatus.BAD_REQUEST, error.message, ErrorLabel.EXTERNAL_SERVICE_ERROR);
 
         //Get public URL
         const { data } = supabase.storage
@@ -473,7 +474,9 @@ export const updateProfilePicture = async (req: AuthRequest, res: Response): Pro
                 .where(eq(AvatarTable.user_id, userID))
                 .returning({ updated_at: AvatarTable.updated_at });
              
-            if(getUpdatedAt.length === 0) throw new Error('Update to image url failed.')    
+            if(getUpdatedAt.length === 0) {
+                throw new AppError(HttpStatus.BAD_REQUEST,'Updating avatar url failed.', ErrorLabel.EXTERNAL_SERVICE_ERROR)
+            }    
 
             photoUrl = photoUrl + "?v=" + getUpdatedAt[0].updated_at;
         } else {
@@ -481,13 +484,15 @@ export const updateProfilePicture = async (req: AuthRequest, res: Response): Pro
         }
 
         res.status(200).json({
-            successMessage: "Profile picture updated successfully.",
+            success: true,
+            message: "Profile picture updated successfully.",
             publicUrl: photoUrl,
         });
     } catch (error) {
-        if (error instanceof Error) {
-            res.status(400).json({ errorMessage: error.message });
-        }
+        next(error);
+        return;
+    }finally{
+       deleteAllFilesAfterUpload("./uploads");
     }
 };
 
