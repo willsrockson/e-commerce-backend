@@ -1,8 +1,9 @@
 import "dotenv/config"
 import Jwt from "jsonwebtoken";
+import pinoHttp from "pino-http";
 import pino from "pino";
-import PinoHttp from "pino-http";
-import { Request } from "express";
+import crypto from "crypto";
+
 const transport = pino.transport({
      targets: [
         //  {
@@ -16,39 +17,45 @@ const transport = pino.transport({
      ],
  });
 
-const pinoLogger = PinoHttp(
-    {
-        genReqId: () => require("crypto").randomUUID(),
-        quietReqLogger: true,
-        serializers: {
-            req: (req: Request) => {
-                const cookies = req.headers.cookie ?? "";
-                const match = cookies.match(/access_token=([^;]+)/);
-                const token = match ? match[1] : "";
-                
-                return {
-                    method: req.method,
-                    url: req.url,
-                    user_ip: req.ips || req.socket?.remoteAddress,
-                    user_agent: req.headers["user-agent"],
-                    user_id: getUserId(token)
-                };
-            },
-            res: (res) => ({
-                statusCode: res.statusCode,
-            }),
-        },
-        customAttributeKeys: {
-            req: "request",
-            res: "response",
-            responseTime: "time_taken_ms",
-        },
-        level: process.env.LOG_LEVEL || "info",
-    },
-    transport,
-);
 
-const getUserId = (token: string)=>{
+ const logger = pino(
+     {
+         level: process.env.PINO_LOG_LEVEL || "info",
+         timestamp: pino.stdTimeFunctions.isoTime,
+     },
+     transport
+ );
+
+const pinoHttpLogger = pinoHttp({
+    serializers:{
+      req: (req) =>{
+        const cookies = req.headers.cookie ?? "";
+        const match = cookies.match(/access_token=([^;]+)/);
+        const token = match ? match[1] : ""; 
+
+        const header = req.headers;
+        console.log(header);
+        
+        
+        return{
+            requestId: crypto.randomUUID(),
+            method: req.method,
+            url: req.url,
+            userIpAddress: req.remoteAddress,
+            userAgent: req.headers["user-agent"],
+            userId: getUserId(token)
+        }
+      },
+      res: (res) => {
+        return{
+            statusCode: res.statusCode,
+        }
+      } 
+    },
+    logger
+})
+
+export const getUserId = (token: string)=>{
          if(!token){
             return {
              id: "guest",
@@ -68,5 +75,5 @@ const getUserId = (token: string)=>{
          }  
 }
 
+export default pinoHttpLogger;
 
-export default pinoLogger;
