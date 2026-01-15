@@ -1,24 +1,16 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    "target": "es2022",
-    "lib": ["ES2022"],
-    "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "moduleResolution": "node",
-    "sourceMap": false,
+    "target": "ESNext",
+    "module": "NodeNext",
     "strict": true,
-    "esModuleInterop": true,
-    "noUnusedParameters": true,
-    "noUnusedLocals": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "noEmitOnError": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "outDir": "./dist"
   },
-  "include": ["src/**/*"],
   "exclude": ["node_modules"]
-  
 }
