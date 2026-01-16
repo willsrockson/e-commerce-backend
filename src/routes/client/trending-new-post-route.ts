@@ -3,11 +3,14 @@ import { db } from "../../database/connection.js";
 import { AdsTable } from "../../database/schema/client/contents/ads-schema.js";
 import { sql, desc, eq } from "drizzle-orm";
 import { UserTable } from "../../database/schema/client/user-schema.js";
+import { HTTPException } from "hono/http-exception";
+import { CODES } from "../../config/constants.js";
 
 const trendingNewPost = new Hono()
 
 trendingNewPost.get("/new/posts", async(c)=>{
-    const getNewAds = await db
+    try {
+      const getNewAds = await db
          .select({
             adsId: AdsTable.ads_id,
             region: AdsTable.region,
@@ -31,11 +34,12 @@ trendingNewPost.get("/new/posts", async(c)=>{
          .orderBy(desc(AdsTable.updated_at))
          .limit(20);
       
-       if(getNewAds.length === 0){
-          throw new Error('No new Ad found')
-       }
-
       return c.json(getNewAds, 200)
+
+    } catch {
+      
+      return c.json([], 200)
+    }
 })
 
 
