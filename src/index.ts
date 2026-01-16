@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors"
 import userRoute from "./routes/client/user-route.js";
 import regionTownRoute from "./routes/client/region-town-route.js";
 import categoriesRoute from "./routes/client/categories-route.js";
@@ -22,6 +23,17 @@ import trendingNewPost from "./routes/client/trending-new-post-route.js";
 type Variables = JwtVariables;
 
 const app = new Hono<{ Variables: Variables }>();
+app.use(
+  '/*', 
+  cors({
+    origin: ['https://tonmame.store', 'http://localhost:3000', 'https://www.tonmame.store'],
+    allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['Content-Length'],
+    maxAge: 600,
+    credentials: true,
+  })
+)
 app.use("*", pinoLogger);
 
 app.use(
