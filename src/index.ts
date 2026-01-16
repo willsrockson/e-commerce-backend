@@ -63,6 +63,11 @@ app.route("/api/auth/post/electronics", postMobilePhones);
 app.route("/api/auth/fetch", mobileCatalog);
 app.route("/api/fetch", mobilePhonesNoAuthCatalog);
 
+// Keep the backend alive
+app.get('/api/health', (c) => {
+  return c.json({ status: 'alive' });
+});
+
 // Global error handler
 app.onError((err, c) => {
    let code: string = "INTERNAL SERVER ERROR";
