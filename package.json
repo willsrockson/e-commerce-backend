@@ -5,8 +5,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "generate": "npx drizzle-kit generate",
-    "migrate": "npx drizzle-kit migrate",
+    "generate": "tsx node_modules/drizzle-kit/bin.cjs generate",
+    "migrate": "tsx node_modules/drizzle-kit/bin.cjs migrate",
     "push": "npx drizzle-kit push",
     "push-pro": "tsx node_modules/drizzle-kit/bin.cjs push"
   },
