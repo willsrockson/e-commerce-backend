@@ -31,7 +31,6 @@ app.use(
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['Content-Length'],
     maxAge: 600,
-    credentials: true,
   })
 )
 app.use("*", pinoLogger);
