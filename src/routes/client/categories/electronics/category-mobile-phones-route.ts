@@ -26,7 +26,7 @@ mobileCatalog.get("/mobile/bookmark/status/:id", async (c) => {
    const id = c.req.param("id");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    try {
@@ -67,7 +67,7 @@ mobileCatalog.get("/mobile/bookmark/count/:id", async (c) => {
    const id = c.req.param("id");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    try {
       if (!id) {
@@ -96,7 +96,7 @@ mobileCatalog.post("/mobile/bookmark/ad", mobilePhonesBookmarkValidator, async (
    const logger = c.get("logger");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    const owner = await db
@@ -199,7 +199,7 @@ mobileCatalog.get("/mobile/phones/:id", async(c)=>{
    const payload: Payload = c.get("jwtPayload");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (!id.trim()) {
@@ -262,7 +262,7 @@ mobileCatalog.delete("/mobile/ads/:adId/del/image", mobilePhonesDelImageValidato
    const logger = c.get("logger");
    const { imageUrl } = c.req.valid("json");
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    if (!adId.trim() || !imageUrl?.includes("https://res.cloudinary.com")) {
       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Ad not found" });
@@ -333,7 +333,7 @@ mobileCatalog.put("/mobile/edit/:id", mobilePhonesEditValidator, async (c) => {
 
    // 1. Security Check
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    // 2. Get the mixed array of (File | string)

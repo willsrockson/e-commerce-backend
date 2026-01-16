@@ -28,7 +28,7 @@ postMobilePhones.post("/mobile/phones", mobilePhonesPostingValidator, async (c) 
    const logger = c.get("logger");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (files.length === 0) {

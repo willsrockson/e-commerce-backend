@@ -25,7 +25,7 @@ const account = new Hono()
 account.get("/settings", async (c) => {
    const payload: Payload = c.get("jwtPayload");
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    const accountSettings = await db
       .select({
@@ -63,7 +63,7 @@ account.patch('/settings/update', updateAccountSettingsValidator, async (c)=> {
     const { storeAddress, fullName, storeName, phonePrimary, phoneSecondary } = c.req.valid('form'); 
 
     if (payload?.role !== ROLE.USER || !payload?.userId) {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+       throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
     }
 
     let dataToUpdate: UpdateAccountSettings = {};
@@ -145,7 +145,7 @@ account.post('/generate/otp/code', otpCodeValidator, async (c)=>{
    const logger = c.get('logger');
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+       throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
     }
    const code = GenerateSixDigitCode().toString();
    
@@ -155,7 +155,7 @@ account.post('/generate/otp/code', otpCodeValidator, async (c)=>{
       .where(eq(UserTable.user_id, payload.userId));
 
    if (!email || !firstName) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Unauthorized access" });
    }   
    const cacheValue = {
        code: code,
@@ -196,7 +196,7 @@ account.get("/resend/email/verification/link", async (c) => {
    const logger = c.get("logger");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    const user = await db
       .select({
@@ -209,7 +209,7 @@ account.get("/resend/email/verification/link", async (c) => {
       .where(eq(UserTable.user_id, payload.userId));
 
    if (user.length === 0) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "User not found" });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "User not found" });
    }
    // Sign email verification link
    const jwtForResendMessages = await SignEmailToken({
@@ -244,11 +244,11 @@ account.patch("/change/unverified/email", changeUnverifiedEmailValidator, async 
    const logger = c.get("logger");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (newEmail?.trim() !== confirmEmail?.trim()) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Email mismatch." });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Email mismatch." });
    }
 
    const checkEmail = await db
@@ -260,11 +260,11 @@ account.patch("/change/unverified/email", changeUnverifiedEmailValidator, async 
       .where(eq(UserTable.user_id, payload.userId));
 
    if (checkEmail.length === 0) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (checkEmail[0]?.emailVerified === "verified") {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, {
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
          message: "Your email has already been verified. To change it request for an otp code.",
       });
    }
@@ -332,11 +332,11 @@ account.patch("/change/verified/email", changeVerifiedEmailValidator, async (c) 
    const cache = clientCache.get(payload.userId) as AccountCacheValues;
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (newEmail?.trim() !== confirmEmail?.trim()) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Email mismatch." });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Email mismatch." });
    }
    const [{ email, emailVerified }] = await db
       .select({
@@ -354,13 +354,13 @@ account.patch("/change/verified/email", changeVerifiedEmailValidator, async (c) 
       
       
    if (cache.email !== email || cache.code !== code || emailVerified !== "verified") {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, {
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
          message: "We couldn't process your request.",
       });
    }
 
    if (newEmail === email) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Nothing changed" });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Nothing changed" });
    }
 
    const checkNewEmailExistence = await db
@@ -424,7 +424,7 @@ account.patch('/delete/number', otpCodeValidator ,async(c)=>{
    const logger = c.get('logger');
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+       throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
     }
 
     const [{phonePrimary, phoneSecondary, phonePrimaryVerified, phoneSecondaryVerified}] = await db
@@ -470,11 +470,11 @@ account.post('/verify/phone/number',otpCodeValidator, async(c)=>{
    const cache = clientCache.get(payload.userId) as AccountCacheValues;
 
    if (payload?.role !== ROLE.USER || !payload?.userId || !code) {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+       throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
     }
    
    if (!cache || !cache.code || !cache.phoneNumber || cache.role !== 'user') {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Failed to verify OTP Code." });
+       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Failed to verify OTP Code." });
     }
 
      const [{phonePrimary, phoneSecondary, phonePrimaryVerified, phoneSecondaryVerified}] = await db
@@ -525,11 +525,11 @@ account.patch("/change/verified/phone/number", otpCodeValidator, async (c) => {
    const cache = clientCache.get(payload.userId) as AccountCacheValues;
 
    if (payload?.role !== ROLE.USER || !payload?.userId || !code || !oldPhone || !phone) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (!cache || !cache.code || !cache.phoneNumber || cache.role !== "user") {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Failed to verify OTP Code." });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Failed to verify OTP Code." });
    }
 
    const phoneChecker = await db
@@ -591,7 +591,7 @@ account.post("/set/avatar", fileLimitMiddleware, async (c) => {
    const logger = c.get("logger");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    if (file instanceof File) {
@@ -674,7 +674,7 @@ account.patch("/change/password", changePasswordValidator, async (c) => {
    const { currentPassword, newPassword, confirmPassword } = c.req.valid("json");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    const [{ password }] = await db
@@ -683,12 +683,12 @@ account.patch("/change/password", changePasswordValidator, async (c) => {
       .where(eq(UserTable.user_id, payload.userId));
 
    if (!password) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Unauthorized access" });
    }
    const isPasswordValid = await bcrypt.compare(currentPassword, password);
 
    if (!isPasswordValid) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Invalid credentials" });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Invalid credentials" });
    }
 
    //Update password
@@ -702,7 +702,7 @@ account.patch("/change/password", changePasswordValidator, async (c) => {
       .returning({ userId: UserTable.user_id });
 
    if (!userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, {
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
          message: "Updating password failed. Please retry.",
       });
    }
@@ -728,7 +728,7 @@ account.get("/my/ads", async(c)=>{
     const payload: Payload = c.get("jwtPayload");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
     
@@ -784,7 +784,7 @@ account.delete("/delete/my/ads/one/:id", async (c) => {
    const id = c.req.param("id");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    if (!id?.trim()) {
       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Ad not found" });
@@ -837,7 +837,7 @@ account.get("/deactivate/ad/:id", async (c) => {
    const id = c.req.param("id");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    if (!id?.trim()) {
       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Ad not found" });
@@ -882,7 +882,7 @@ account.post("/products/to/bookmark", productCardValidator, async (c) => {
    const payload: Payload = c.get("jwtPayload");
    const { productId } = c.req.valid("json");
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Unauthorized access" });
    }
 
    const adInfo = await db
@@ -938,7 +938,7 @@ account.get("/bookmarks", async (c) => {
    const payload: Payload = c.get("jwtPayload");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    const savedAds = await db
@@ -971,7 +971,7 @@ account.delete("/delete/one/bookmark/:id", async (c) => {
    const id = c.req.param("id");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    if (!id?.trim()) {
       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "We couldn't find the Ad" });
@@ -1004,7 +1004,7 @@ account.delete("/delete/all/bookmark", async (c) => {
    const logger = c.get("logger");
 
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    const deleteAll = await db

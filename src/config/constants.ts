@@ -4,7 +4,7 @@ export const CODES = {
     OK: 200,
     CREATED: 201,
     BAD_REQUEST: 400,
-    UNAUTHORIZED: 401,     // Not logged in
+    UNAUTHORIZED_ACCESS: 401,     // Not logged in
     FORBIDDEN: 403,        // Logged in, but no permission
     NOT_FOUND: 404,
     METHOD_NOT_ALLOWED: 405,

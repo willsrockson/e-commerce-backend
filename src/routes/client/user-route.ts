@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { emailVerificationValidator, loginValidator, registerValidator } from "../../validators/client/user-validator.js";
 import { getCookie, setCookie } from "hono/cookie";
-import { sign, verify } from "hono/jwt";
+import { verify } from "hono/jwt";
 import { db } from "../../database/connection.js";
 import { google } from "../../providers/client/auth.js";
 import type { GoogleOauthUserData } from "../../types/client/types.js";
@@ -33,13 +33,13 @@ user.post('/login', loginValidator, async (c) => {
        .where(or(eq(UserTable.email, emailPhone), eq(UserTable.phone_primary, emailPhone), eq(UserTable.phone_secondary, emailPhone)));
 
     if (user.length === 0 || user[0]?.providerName || !user[0]?.password) {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Invalid credentials." });
+       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Invalid credentials." });
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user[0]?.password);
 
     if (isPasswordCorrect === false) {
-       throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Invalid credentials." });
+       throw new HTTPException(CODES.HTTP.BAD_REQUEST, { message: "Invalid credentials." });
     }
     // Sign Auth Token
     const jwtToken = await SignToken({
@@ -193,7 +193,7 @@ user.get('/google/callback', async(c)=> {
     const googleUser = await googleUserResponse.json() as GoogleOauthUserData;
 
     if(!googleUser.email || !googleUser.family_name || !googleUser.given_name || !googleUser.sub) {
-        throw new HTTPException(CODES.HTTP.UNAUTHORIZED, {message: 'Unauthorized request'} )
+        throw new HTTPException(CODES.HTTP.NOT_FOUND, {message: 'Unauthorized request'} )
     }
 
     // ---------------------------------------------------------

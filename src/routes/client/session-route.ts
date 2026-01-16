@@ -13,7 +13,7 @@ session.get("/recreate", async (c) => {
    const payload: Payload = c.get("jwtPayload");
    
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
 
    //Fetch user data
@@ -49,7 +49,7 @@ session.get("/recreate", async (c) => {
 session.get("/terminate", async (c) => {
    const payload: Payload = c.get("jwtPayload");
    if (payload?.role !== ROLE.USER || !payload?.userId) {
-      throw new HTTPException(CODES.HTTP.UNAUTHORIZED, { message: "Unauthorized access" });
+      throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
    }
    const updateTokenVersion = await db
           .update(UserTable)

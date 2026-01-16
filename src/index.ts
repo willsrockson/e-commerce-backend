@@ -24,13 +24,14 @@ type Variables = JwtVariables;
 
 const app = new Hono<{ Variables: Variables }>();
 app.use(
-  '/*', 
+  '*', 
   cors({
     origin: ['https://tonmame.store', 'http://localhost:3000', 'https://www.tonmame.store'],
     allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['Content-Length'],
     maxAge: 600,
+    credentials: true
   })
 )
 app.use("*", pinoLogger);
@@ -73,12 +74,12 @@ app.onError((err, c) => {
       logger.error(err);
       message ='Please log in to continue.',
       code = CODES.APP.AUTH_TOKEN_INVALID;
-      httpCode = CODES.HTTP.UNAUTHORIZED;
+      httpCode = CODES.HTTP.NOT_FOUND;
    
   }else if (err instanceof HTTPException) {
       logger.error(err);
       code = CODES.APP.HTTP_EXCEPTION;
-      httpCode = CODES.HTTP.BAD_REQUEST;
+      httpCode = err.status ?? CODES.HTTP.BAD_REQUEST;
       message = err.message;
    } else if (err instanceof ZodError) {
       logger.error(err);
@@ -88,7 +89,7 @@ app.onError((err, c) => {
    } else if (err instanceof JwtTokenExpired) {
       logger.error(err);
       code = CODES.APP.AUTH_TOKEN_EXPIRED;
-      httpCode = CODES.HTTP.UNAUTHORIZED;
+      httpCode = CODES.HTTP.NOT_FOUND;
       message = "The verification link is invalid or has expired.";
    } else if (err instanceof Error) {
       logger.error(err);
