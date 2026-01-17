@@ -154,8 +154,7 @@ user.get('/oauth/login', async(c)=> {
       maxAge: 60 * 10, // 10 minutes
       path: "/",
   });
-
-  // Go to Google and log into your account!
+ 
   return c.json({url: url.toString()}, 200);
    
 })
@@ -255,15 +254,12 @@ user.get('/google/callback', async(c)=> {
 
      setCookie(c, "access_token", myAppToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === ENVIRONMENT.PROD, // simple security check
-            maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
+            secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
+            maxAge: AUTH_COOKIE_MAX_AGE,
             path: "/",
         });
 
-    const redirectUrl =
-       process.env.NODE_ENV === ENVIRONMENT.PROD
-          ? `${process.env.FRONTEND_PROD_URL}`
-          : `${process.env.FRONTEND_DEV_URL}`;
+    const redirectUrl = process.env.NODE_ENV === ENVIRONMENT.PROD ? `${process.env.FRONTEND_PROD_URL}` : `${process.env.FRONTEND_DEV_URL}`;
 
     return c.redirect(redirectUrl, 302)
 
