@@ -14,8 +14,11 @@ import bcrypt from "bcryptjs";
 import { SignEmailToken, SignToken } from "../../utils/universal/universal-functions.js";
 import { EmailClient } from "../../utils/universal/email-client.js";
 import { VerifyEmailHtml } from "../../utils/universal/html-templates.js";
+import "dotenv/config"
 
 const user = new Hono();
+
+const COOKIE_DOMAIN = process.env.NODE_ENV === "production" ? ".tonmame.store" : undefined;
 
 user.post('/login', loginValidator, async (c) => {
     const { emailPhone, password } = c.req.valid('json');
@@ -52,7 +55,8 @@ user.post('/login', loginValidator, async (c) => {
        httpOnly: true,
        secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
        maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
-       sameSite: "Lax",
+       sameSite: "None",
+       domain: COOKIE_DOMAIN,
        path: "/",
     });
 
@@ -121,7 +125,8 @@ user.post('/signup', registerValidator, async (c) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
             maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
-            sameSite: "Lax",
+            sameSite: "None",
+            domain: COOKIE_DOMAIN,
             path: "/",
         });
 
@@ -147,7 +152,8 @@ user.get('/oauth/login', async(c)=> {
       httpOnly: true,
       secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
       maxAge: 60 * 10,
-      sameSite: "Lax",
+      sameSite: "None",
+      domain: COOKIE_DOMAIN,
       path: "/",
   });
 
@@ -155,7 +161,8 @@ user.get('/oauth/login', async(c)=> {
       httpOnly: true,
       secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
       maxAge: 60 * 10,
-      sameSite: "Lax",
+      sameSite: "None",
+      domain: COOKIE_DOMAIN,
       path: "/",
   });
  
@@ -279,7 +286,8 @@ console.log("=======================================");
             httpOnly: true,
             secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
             maxAge: AUTH_COOKIE_MAX_AGE,
-            sameSite: "Lax",
+            sameSite: "None",
+            domain: COOKIE_DOMAIN,
             path: "/",
         });
 
