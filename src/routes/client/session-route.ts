@@ -6,6 +6,7 @@ import { db } from "../../database/connection.js";
 import { AvatarTable, UserTable } from "../../database/schema/client/user-schema.js";
 import { eq, sql } from "drizzle-orm";
 import { deleteCookie } from "hono/cookie";
+import { COOKIE_DOMAIN } from "./user-route.js";
 
 const session = new Hono();
 
@@ -31,7 +32,7 @@ session.get("/recreate", async (c) => {
       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "User not found" });
    }
    if(getUserData[0]?.tokenVersion !== payload.tokenVersion){
-      deleteCookie(c, 'access_token')
+      deleteCookie(c, 'access_token', { path: "/", domain: COOKIE_DOMAIN })
       return c.redirect('/')
    }
 
@@ -61,7 +62,7 @@ session.get("/terminate", async (c) => {
           throw new HTTPException(CODES.HTTP.BAD_REQUEST, { message: 'Logout failed'});
       }
 
-   deleteCookie(c, 'access_token');
+   deleteCookie(c, 'access_token', { path: "/", domain: COOKIE_DOMAIN } );
    return c.json({success: true}, 200)
 });
 

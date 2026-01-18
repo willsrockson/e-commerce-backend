@@ -18,7 +18,7 @@ import "dotenv/config"
 
 const user = new Hono();
 
-const COOKIE_DOMAIN = process.env.NODE_ENV === "production" ? ".tonmame.store" : undefined;
+export const COOKIE_DOMAIN = process.env.NODE_ENV === "production" ? ".tonmame.store" : undefined;
 
 user.post('/login', loginValidator, async (c) => {
     const { emailPhone, password } = c.req.valid('json');
