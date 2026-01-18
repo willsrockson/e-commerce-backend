@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { emailVerificationValidator, loginValidator, registerValidator } from "../../validators/client/user-validator.js";
-import { getCookie, setCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import { db } from "../../database/connection.js";
 import { google } from "../../providers/client/auth.js";
@@ -187,25 +187,6 @@ user.get('/google/callback', async(c)=> {
 
   // 3. SECURITY CHECK: Do the states match?
   // If not, someone is trying to hack the login.
-  console.log("===== GOOGLE OAUTH CALLBACK DEBUG =====");
-
-console.log("QUERY PARAMS:");
-console.log("code (query):", code);
-console.log("state (query):", state);
-
-console.log("COOKIES:");
-console.log("state (cookie):", storedState);
-console.log("code_verifier (cookie):", storedCodeVerifier);
-
-console.log("MATCH CHECKS:");
-console.log("state matches:", storedState === state);
-console.log("code exists:", !!code);
-console.log("verifier exists:", !!storedCodeVerifier);
-
-console.log("=======================================");
-
-
-
   if (!code || !storedState || !storedCodeVerifier || state !== storedState) {
     throw new HTTPException(CODES.HTTP.BAD_REQUEST, { message: 'Authentication failed'})
   }
@@ -281,6 +262,8 @@ console.log("=======================================");
         });
       
      }
+     deleteCookie(c, "google_oauth_state", { path: "/", domain: COOKIE_DOMAIN });
+     deleteCookie(c, "google_code_verifier", { path: "/", domain: COOKIE_DOMAIN });
 
      setCookie(c, "access_token", myAppToken, {
             httpOnly: true,
