@@ -52,6 +52,7 @@ user.post('/login', loginValidator, async (c) => {
        httpOnly: true,
        secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
        maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
+       sameSite: "Lax",
        path: "/",
     });
 
@@ -120,6 +121,7 @@ user.post('/signup', registerValidator, async (c) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
             maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
+            sameSite: "Lax",
             path: "/",
         });
 
@@ -144,14 +146,16 @@ user.get('/oauth/login', async(c)=> {
   setCookie(c, "google_oauth_state", state, {
       httpOnly: true,
       secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-      maxAge: 60 * 10, // 10 minutes
+      maxAge: 60 * 10,
+      sameSite: "Lax",
       path: "/",
   });
 
   setCookie(c, "google_code_verifier", codeVerifier, {
       httpOnly: true,
       secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-      maxAge: 60 * 10, // 10 minutes
+      maxAge: 60 * 10,
+      sameSite: "Lax",
       path: "/",
   });
  
@@ -256,6 +260,7 @@ user.get('/google/callback', async(c)=> {
             httpOnly: true,
             secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
             maxAge: AUTH_COOKIE_MAX_AGE,
+            sameSite: "Lax",
             path: "/",
         });
 
