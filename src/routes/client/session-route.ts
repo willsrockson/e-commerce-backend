@@ -27,11 +27,8 @@ session.get("/recreate", async (c) => {
       .from(UserTable)
       .leftJoin(AvatarTable, eq(UserTable.user_id, AvatarTable.user_id))
       .where(eq(UserTable.user_id, payload.userId));
-
-   if (getUserData?.length === 0) {
-      throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "User not found" });
-   }
-   if(getUserData[0]?.tokenVersion !== payload.tokenVersion){
+      
+   if(getUserData[0]?.tokenVersion !== payload.tokenVersion || getUserData?.length === 0){
       deleteCookie(c, 'access_token', { path: "/", domain: COOKIE_DOMAIN })
       return c.redirect('/')
    }

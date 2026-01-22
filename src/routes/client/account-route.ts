@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { AccountCacheValues, CloudinaryUploader, Payload, UpdateAccountSettings } from "../../types/client/types.js";
+import type { AccountCacheValues, CloudinaryUploader, MyAds, Payload, UpdateAccountSettings } from "../../types/client/types.js";
 import { db } from "../../database/connection.js";
 import { AvatarTable, UserTable } from "../../database/schema/client/user-schema.js";
 import { and, eq, or, sql } from "drizzle-orm";
@@ -15,6 +15,7 @@ import bcrypt from "bcryptjs";
 import { EmailClient } from "../../utils/universal/email-client.js";
 import { AdsTable, SavedAdTable } from "../../database/schema/client/contents/ads-schema.js";
 import { countPublishedAds, mainCategoryCountQuery, publishedAdsQuery, subCategoryCountQuery } from "../../database/queries/client/account/my-ads-queries.js";
+import { createAutoStoreNameSlug } from "../../utils/universal/slug-generator.js";
 
 
 
@@ -39,6 +40,8 @@ account.get("/settings", async (c) => {
          phonePrimaryVerified: UserTable.phone_primary_verified,
          phoneSecondaryVerified: UserTable.phone_secondary_verified,
          storeAddress: UserTable.store_address,
+         storeDescription: UserTable.store_description,
+         openHours: UserTable.open_hours,
          avatarId: AvatarTable.avatar_id,
          imageUrl: AvatarTable.image_url,
          updatedAt: AvatarTable.updated_at,
@@ -60,7 +63,7 @@ account.get("/settings", async (c) => {
 */
 account.patch('/settings/update', updateAccountSettingsValidator, async (c)=> {
     const payload: Payload = c.get("jwtPayload");
-    const { storeAddress, fullName, storeName, phonePrimary, phoneSecondary } = c.req.valid('form'); 
+    const { storeAddress, fullName, storeName, phonePrimary, phoneSecondary, openHours, storeDescription } = c.req.valid('form'); 
 
     if (payload?.role !== ROLE.USER || !payload?.userId) {
        throw new HTTPException(CODES.HTTP.UNAUTHORIZED_ACCESS, { message: "Unauthorized access" });
@@ -68,11 +71,18 @@ account.patch('/settings/update', updateAccountSettingsValidator, async (c)=> {
 
     let dataToUpdate: UpdateAccountSettings = {};
 
-    if (storeName) dataToUpdate.store_name = storeName;
+    if (storeName){
+        dataToUpdate.store_name = storeName;
+        const storNameSlug = await createAutoStoreNameSlug(storeName);  
+        dataToUpdate.store_name_slug = storNameSlug;     
+    }
+
     if (fullName) dataToUpdate.full_name = fullName;
     if (phonePrimary) dataToUpdate.phone_primary = phonePrimary;
     if (phoneSecondary) dataToUpdate.phone_secondary = phoneSecondary;
     if (storeAddress) dataToUpdate.store_address = storeAddress;
+    if (openHours) dataToUpdate.open_hours = openHours;
+    if (storeDescription) dataToUpdate.store_description = storeDescription;
 
     if (phoneSecondary) {
        //check if Secondary phone is the same as secondary
@@ -715,10 +725,6 @@ account.patch("/change/password", changePasswordValidator, async (c) => {
 The code below handles fetching all ads listed by the Seller
 */
 
-interface MyAds{
-  main_category?: string;
-  sub_category?: string;
-}
 account.get("/my/ads", async(c)=>{
     const page = Number(c.req.query("page")) || 1;
     const limit = Number(c.req.query("limit")) || 20;

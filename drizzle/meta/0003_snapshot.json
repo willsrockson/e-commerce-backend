@@ -1,0 +1,1121 @@
+{
+  "id": "aed69ed7-ea2d-454a-93f8-31c5b3b2c85b",
+  "prevId": "4915c7db-707a-45b3-acb2-944bf075d423",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ads": {
+      "name": "ads",
+      "schema": "",
+      "columns": {
+        "ads_id": {
+          "name": "ads_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "town": {
+          "name": "town",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "main_category": {
+          "name": "main_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "main_slug": {
+          "name": "main_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_category": {
+          "name": "sub_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_slug": {
+          "name": "sub_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "images": {
+          "name": "images",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "deactivated": {
+          "name": "deactivated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ads_user_id_users_user_id_fk": {
+          "name": "ads_user_id_users_user_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ads_slug_unique": {
+          "name": "ads_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.saved_ads": {
+      "name": "saved_ads",
+      "schema": "",
+      "columns": {
+        "saved_id": {
+          "name": "saved_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "main_category": {
+          "name": "main_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_category": {
+          "name": "sub_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ads_id": {
+          "name": "ads_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_user_id": {
+          "name": "owner_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_primary": {
+          "name": "phone_primary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "condition": {
+          "name": "condition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_saved_ads_user": {
+          "name": "idx_saved_ads_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_saved_ads_owner": {
+          "name": "idx_saved_ads_owner",
+          "columns": [
+            {
+              "expression": "owner_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "saved_ads_ads_id_ads_ads_id_fk": {
+          "name": "saved_ads_ads_id_ads_ads_id_fk",
+          "tableFrom": "saved_ads",
+          "tableTo": "ads",
+          "columnsFrom": [
+            "ads_id"
+          ],
+          "columnsTo": [
+            "ads_id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "saved_ads_owner_user_id_users_user_id_fk": {
+          "name": "saved_ads_owner_user_id_users_user_id_fk",
+          "tableFrom": "saved_ads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "owner_user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "saved_ads_user_id_users_user_id_fk": {
+          "name": "saved_ads_user_id_users_user_id_fk",
+          "tableFrom": "saved_ads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "saved_ads_user_id_ads_id_unique": {
+          "name": "saved_ads_user_id_ads_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "ads_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.main_category": {
+      "name": "main_category",
+      "schema": "",
+      "columns": {
+        "main_category_id": {
+          "name": "main_category_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "main_name": {
+          "name": "main_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "main_slug": {
+          "name": "main_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "main_category_main_name_unique": {
+          "name": "main_category_main_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "main_name"
+          ]
+        },
+        "main_category_main_slug_unique": {
+          "name": "main_category_main_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "main_slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_category": {
+      "name": "sub_category",
+      "schema": "",
+      "columns": {
+        "sub_category_id": {
+          "name": "sub_category_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sub_name": {
+          "name": "sub_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_slug": {
+          "name": "sub_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "main_category_id": {
+          "name": "main_category_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_category_main_category_id_main_category_main_category_id_fk": {
+          "name": "sub_category_main_category_id_main_category_main_category_id_fk",
+          "tableFrom": "sub_category",
+          "tableTo": "main_category",
+          "columnsFrom": [
+            "main_category_id"
+          ],
+          "columnsTo": [
+            "main_category_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sub_category_sub_slug_unique": {
+          "name": "sub_category_sub_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sub_slug"
+          ]
+        },
+        "sub_category_sub_name_main_category_id_unique": {
+          "name": "sub_category_sub_name_main_category_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sub_name",
+            "main_category_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mobile_phones_general": {
+      "name": "mobile_phones_general",
+      "schema": "",
+      "columns": {
+        "mobile_general_id": {
+          "name": "mobile_general_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "conditions": {
+          "name": "conditions",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "negotiable": {
+          "name": "negotiable",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "exchange_possible": {
+          "name": "exchange_possible",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "accessories": {
+          "name": "accessories",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "verification_status": {
+          "name": "verification_status",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY['verified', 'unverified']::text[]"
+        },
+        "sub_category_id": {
+          "name": "sub_category_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mobile_phones_general_sub_category_id_sub_category_sub_category_id_fk": {
+          "name": "mobile_phones_general_sub_category_id_sub_category_sub_category_id_fk",
+          "tableFrom": "mobile_phones_general",
+          "tableTo": "sub_category",
+          "columnsFrom": [
+            "sub_category_id"
+          ],
+          "columnsTo": [
+            "sub_category_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mobile_phones": {
+      "name": "mobile_phones",
+      "schema": "",
+      "columns": {
+        "mobile_id": {
+          "name": "mobile_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "brand": {
+          "name": "brand",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage": {
+          "name": "storage",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "ram": {
+          "name": "ram",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "colors": {
+          "name": "colors",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "battery_size": {
+          "name": "battery_size",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "screen_size": {
+          "name": "screen_size",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "sub_category_id": {
+          "name": "sub_category_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mobile_phones_sub_category_id_sub_category_sub_category_id_fk": {
+          "name": "mobile_phones_sub_category_id_sub_category_sub_category_id_fk",
+          "tableFrom": "mobile_phones",
+          "tableTo": "sub_category",
+          "columnsFrom": [
+            "sub_category_id"
+          ],
+          "columnsTo": [
+            "sub_category_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mobile_phones_model_unique": {
+          "name": "mobile_phones_model_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "model"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.region": {
+      "name": "region",
+      "schema": "",
+      "columns": {
+        "region_id": {
+          "name": "region_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Ghana'"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "region_name_unique": {
+          "name": "region_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.town": {
+      "name": "town",
+      "schema": "",
+      "columns": {
+        "town_id": {
+          "name": "town_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_id": {
+          "name": "region_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "unique_town_per_region": {
+          "name": "unique_town_per_region",
+          "columns": [
+            {
+              "expression": "region_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "town_region_id_region_region_id_fk": {
+          "name": "town_region_id_region_region_id_fk",
+          "tableFrom": "town",
+          "tableTo": "region",
+          "columnsFrom": [
+            "region_id"
+          ],
+          "columnsTo": [
+            "region_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.avatars": {
+      "name": "avatars",
+      "schema": "",
+      "columns": {
+        "avatar_id": {
+          "name": "avatar_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "avatars_user_id_users_user_id_fk": {
+          "name": "avatars_user_id_users_user_id_fk",
+          "tableFrom": "avatars",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "avatars_user_id_unique": {
+          "name": "avatars_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "store_name": {
+          "name": "store_name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "store_name_slug": {
+          "name": "store_name_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_primary": {
+          "name": "phone_primary",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_secondary": {
+          "name": "phone_secondary",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "store_description": {
+          "name": "store_description",
+          "type": "varchar(400)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "open_hours": {
+          "name": "open_hours",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_name": {
+          "name": "provider_name",
+          "type": "provider_name",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
+        },
+        "store_address": {
+          "name": "store_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_version": {
+          "name": "token_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "email_verified",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unverified'"
+        },
+        "phone_primary_verified": {
+          "name": "phone_primary_verified",
+          "type": "phone_primary_verified",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unverified'"
+        },
+        "phone_secondary_verified": {
+          "name": "phone_secondary_verified",
+          "type": "phone_secondary_verified",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unverified'"
+        },
+        "id_verified": {
+          "name": "id_verified",
+          "type": "id_verified",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unverified'"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "users_store_name_slug_unique": {
+          "name": "users_store_name_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "store_name_slug"
+          ]
+        },
+        "users_phone_primary_unique": {
+          "name": "users_phone_primary_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone_primary"
+          ]
+        },
+        "users_phone_secondary_unique": {
+          "name": "users_phone_secondary_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone_secondary"
+          ]
+        },
+        "users_provider_id_unique": {
+          "name": "users_provider_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "provider_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.email_verified": {
+      "name": "email_verified",
+      "schema": "public",
+      "values": [
+        "unverified",
+        "verified"
+      ]
+    },
+    "public.id_verified": {
+      "name": "id_verified",
+      "schema": "public",
+      "values": [
+        "unverified",
+        "processing",
+        "verified"
+      ]
+    },
+    "public.phone_primary_verified": {
+      "name": "phone_primary_verified",
+      "schema": "public",
+      "values": [
+        "unverified",
+        "verified"
+      ]
+    },
+    "public.phone_secondary_verified": {
+      "name": "phone_secondary_verified",
+      "schema": "public",
+      "values": [
+        "unverified",
+        "verified"
+      ]
+    },
+    "public.provider_name": {
+      "name": "provider_name",
+      "schema": "public",
+      "values": [
+        "google"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "user",
+        "moderator",
+        "superuser"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

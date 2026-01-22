@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { emailVerificationValidator, loginValidator, registerValidator } from "../../validators/client/user-validator.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
@@ -15,10 +15,32 @@ import { SignEmailToken, SignToken } from "../../utils/universal/universal-funct
 import { EmailClient } from "../../utils/universal/email-client.js";
 import { VerifyEmailHtml } from "../../utils/universal/html-templates.js";
 import "dotenv/config"
+import { createAutoStoreNameSlug } from "../../utils/universal/slug-generator.js";
+
+type CookieData = {
+   c: Context;
+   name: string;
+   data: any;
+   maxAge: number;
+};
+
 
 const user = new Hono();
 
-export const COOKIE_DOMAIN = process.env.NODE_ENV === "production" ? ".tonmame.store" : undefined;
+export const COOKIE_DOMAIN = process.env.NODE_ENV === ENVIRONMENT.PROD ? ".tonmame.store" : undefined ;
+export const isProd = process.env.NODE_ENV === ENVIRONMENT.PROD;
+
+
+const cookieSetter = ({ c, name, data, maxAge }: CookieData) => {
+   setCookie(c, name, data, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
+      maxAge: maxAge,
+      sameSite: isProd ? "None" : "Lax",
+      domain: COOKIE_DOMAIN,
+      path: "/",
+   });
+};
 
 user.post('/login', loginValidator, async (c) => {
     const { emailPhone, password } = c.req.valid('json');
@@ -51,15 +73,8 @@ user.post('/login', loginValidator, async (c) => {
        tokenVersion: user[0]?.tokenVersion,
     });
 
-    setCookie(c, "access_token", jwtToken, {
-       httpOnly: true,
-       secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-       maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
-       sameSite: "None",
-       domain: COOKIE_DOMAIN,
-       path: "/",
-    });
-
+    cookieSetter({c, name:"access_token", data:jwtToken, maxAge: AUTH_COOKIE_MAX_AGE})
+    
     logger.info(`${emailPhone}: Logged in successfully.`);
 
     return c.json({ success: true }, 200);
@@ -83,6 +98,8 @@ user.post('/signup', registerValidator, async (c) => {
     const salt = await bcrypt.genSalt(Number(process.env.SALT));
     const hash = await bcrypt.hash(password, salt);
 
+    const storeNameSlug = await createAutoStoreNameSlug(fullName); 
+
     const createUser = await db
        .insert(UserTable)
        .values({
@@ -90,6 +107,7 @@ user.post('/signup', registerValidator, async (c) => {
           full_name: fullName,
           password: hash,
           phone_primary: phonePrimary,
+          store_name_slug: storeNameSlug
        })
        .returning({
           userId: UserTable.user_id,
@@ -121,14 +139,7 @@ user.post('/signup', registerValidator, async (c) => {
                  .replaceAll("[Verification Link]", emailVerificationLink)
           );     
     
-    setCookie(c, "access_token", jwtToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-            maxAge: AUTH_COOKIE_MAX_AGE, // 24hr minutes
-            sameSite: "None",
-            domain: COOKIE_DOMAIN,
-            path: "/",
-        });
+   cookieSetter({c, name:"access_token", data:jwtToken, maxAge: AUTH_COOKIE_MAX_AGE})
 
     logger.info(`${email}: registered successfully. ${emailId}`)    
     return c.json({ success: true }, 200);
@@ -138,37 +149,18 @@ user.post('/signup', registerValidator, async (c) => {
 // Login with google
 // This route builds the Url for the user login into google.
 //
-user.get('/oauth/login', async(c)=> {
-  //question, why do i need this
-  const state = generateState()
-  const codeVerifier = generateCodeVerifier();
+user.get("/oauth/login", async (c) => {
+   const state = generateState();
+   const codeVerifier = generateCodeVerifier();
 
-  // 2. Build the Google URL
-  // "scopes" = What do we want? We want their email and profile.
-  const scopes = ["openid", "profile", "email"];
-  const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+   const scopes = ["openid", "profile", "email"];
+   const url = google.createAuthorizationURL(state, codeVerifier, scopes);
 
-  setCookie(c, "google_oauth_state", state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-      maxAge: 60 * 10,
-      sameSite: "None",
-      domain: COOKIE_DOMAIN,
-      path: "/",
-  });
+   cookieSetter({ c, name: "google_oauth_state", data: state, maxAge: 60 * 10 });
+   cookieSetter({ c, name: "google_code_verifier", data: codeVerifier, maxAge: 60 * 10 });
 
-  setCookie(c, "google_code_verifier", codeVerifier, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-      maxAge: 60 * 10,
-      sameSite: "None",
-      domain: COOKIE_DOMAIN,
-      path: "/",
-  });
- 
-  return c.json({url: url.toString()}, 200);
-   
-})
+   return c.json({ url: url.toString() }, 200);
+});
 
 
 
@@ -240,6 +232,7 @@ user.get('/google/callback', async(c)=> {
 
      }else{
        // Create user
+       const storeNameSlug = await createAutoStoreNameSlug(googleUser.given_name + " " + googleUser.family_name); 
         user = await db
            .insert(UserTable)
            .values({
@@ -247,6 +240,7 @@ user.get('/google/callback', async(c)=> {
               full_name: googleUser.given_name + " " + googleUser.family_name,
               provider_id: googleUser.sub,
               provider_name: AUTH_PROVIDER_NAME.GOOGLE,
+              store_name_slug: storeNameSlug
            })
            .returning({
               userId: UserTable.user_id,
@@ -265,14 +259,7 @@ user.get('/google/callback', async(c)=> {
      deleteCookie(c, "google_oauth_state", { path: "/", domain: COOKIE_DOMAIN });
      deleteCookie(c, "google_code_verifier", { path: "/", domain: COOKIE_DOMAIN });
 
-     setCookie(c, "access_token", myAppToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-            maxAge: AUTH_COOKIE_MAX_AGE,
-            sameSite: "None",
-            domain: COOKIE_DOMAIN,
-            path: "/",
-        });
+     cookieSetter({c, name:"access_token", data:myAppToken, maxAge: AUTH_COOKIE_MAX_AGE})
 
     const redirectUrl = process.env.NODE_ENV === ENVIRONMENT.PROD ? `${process.env.FRONTEND_PROD_URL}` : `${process.env.FRONTEND_DEV_URL}`;
 

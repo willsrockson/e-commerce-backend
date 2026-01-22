@@ -27,6 +27,9 @@ export type UpdateAccountSettings = {
   phone_primary?: string;
   phone_secondary?: string; 
   store_address?: string; 
+  store_name_slug?: string;
+  store_description?: string;
+  open_hours?: string;
 }
 
 export type EmailVCache = {
@@ -58,6 +61,12 @@ export type CloudinaryUploader = {
   secure_url: string;
   public_id: string;
   version: string;
+}
+
+
+export interface MyAds{
+  main_category?: string;
+  sub_category?: string;
 }
 
 

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq, gte, lte, ne, sql, desc, count, or } from "drizzle-orm";
+import { and, eq, gte, lte, ne, sql, desc, count, or, ilike } from "drizzle-orm";
 import { db } from "../../../../../database/connection.js";
 import { 
     mobilePhonesQuery ,
@@ -55,6 +55,7 @@ interface IQueryType{
   exchange_possible?: string;
   negotiable?: string;
   id_verified?: string;
+  q?:string;
 }
 
 const mobilePhonesNoAuthCatalog = new Hono()
@@ -76,6 +77,27 @@ mobilePhonesNoAuthCatalog.get("/mobile/phones", async(c)=>{
     
   function buildFilters(query: IQueryType, wanted: (keyof IQueryType)[]) {
         const conditions = [];
+
+        if (wanted.includes('q') && query.q) {
+            const fuzzyMatch = or(
+                ilike(AdsTable.title, `%${query.q}%`),
+                ilike(AdsTable.description, `%${query.q}%`),
+                ilike(AdsTable.main_category, `%${query.q}%`),
+                ilike(AdsTable.sub_category, `%${query.q}%`)
+            );
+
+            const fullTextSearch = sql`
+                to_tsvector('english', 
+                    coalesce(${AdsTable.title}, '') || ' ' || 
+                    coalesce(${AdsTable.description}, '') || ' ' || 
+                    coalesce(${AdsTable.main_category}, '') || ' ' || 
+                    coalesce(${AdsTable.sub_category}, '')
+                )
+                @@ plainto_tsquery('english', ${query.q})
+            `;
+
+            conditions.push(or(fuzzyMatch, fullTextSearch));
+        }
 
         if (wanted.includes('region') && query.region) {
             conditions.push(eq(AdsTable.region, query.region));
@@ -126,19 +148,19 @@ mobilePhonesNoAuthCatalog.get("/mobile/phones", async(c)=>{
    
      try {
                   
-          const allFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const regionFilters = buildFilters(query, ["brand", "model", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const townFilters = buildFilters(query, ["brand", "model", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const brandFilters = buildFilters(query, ["region", "town", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const modelFilters = buildFilters(query, ["region", "town", "brand", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const conditionFilters = buildFilters(query, ["region", "town", "brand", "model", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const storageFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const ramFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const colorFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "storage", "screen_size", "exchange_possible", "negotiable", "id_verified"]);
-          const screenSizeFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "exchange_possible", "negotiable", "id_verified"]);
-          const exchangePossibleFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "negotiable", "id_verified"]);
-          const negotiableFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "id_verified"]);
-          const verifiedSellerFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable"]);
+          const allFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable","id_verified","q"]);
+          const regionFilters = buildFilters(query, ["brand", "model", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const townFilters = buildFilters(query, ["brand", "model", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const brandFilters = buildFilters(query, ["region", "town", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const modelFilters = buildFilters(query, ["region", "town", "brand", "condition", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const conditionFilters = buildFilters(query, ["region", "town", "brand", "model", "price_min", 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const storageFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const ramFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "storage", "color", "screen_size", "exchange_possible", "negotiable", "id_verified","q"]);
+          const colorFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "storage", "screen_size", "exchange_possible", "negotiable", "id_verified", "q"]);
+          const screenSizeFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "exchange_possible", "negotiable", "id_verified", "q"]);
+          const exchangePossibleFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "negotiable", "id_verified", "q"]);
+          const negotiableFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "id_verified", "q"]);
+          const verifiedSellerFilters = buildFilters(query, ["region", "town", "brand", "model", 'condition', 'price_min', 'price_max', "ram", "storage", "color", "screen_size", "exchange_possible", "negotiable", "q"]);
 
 
 
@@ -241,6 +263,8 @@ mobilePhonesNoAuthCatalog.get("/mobile/phones/:id", async (c) => {
          storeName: UserTable.store_name,
          fullName: UserTable.full_name,
          phonePrimary: UserTable.phone_primary,
+         storeNameSlug: UserTable.store_name_slug,
+         openHours: UserTable.open_hours,
          phoneSecondary: UserTable.phone_secondary,
          idVerified: UserTable.id_verified,
          userCreatedAt: UserTable.created_at,

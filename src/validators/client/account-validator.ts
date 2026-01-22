@@ -1,6 +1,6 @@
 import z from "zod";
 import { clientZodValidator } from "./brain.js";
-import { GH_PHONE_NUMBER_REGEX, SIX_DIGIT_CODE_REGEX } from "../../config/constants.js";
+import { GH_PHONE_NUMBER_REGEX, OPEN_HOURS_REGEX, SIX_DIGIT_CODE_REGEX } from "../../config/constants.js";
 
 
 const accountSettingsSchema = z.object({
@@ -8,19 +8,23 @@ const accountSettingsSchema = z.object({
    fullName: z.string().trim().min(3, "Full name can not be empty").optional(),
    phonePrimary: z
       .string()
-      .regex(
-         GH_PHONE_NUMBER_REGEX,
-         "Please enter a valid 10-digit number (e.g., 0244123456)."
-      )
+      .regex(GH_PHONE_NUMBER_REGEX, "Please enter a valid 10-digit number (e.g., 0244123456).")
       .optional(),
    phoneSecondary: z
       .string()
-      .regex(
-         GH_PHONE_NUMBER_REGEX,
-         "Please enter a valid 10-digit number (e.g., 0244123456)."
-      )
+      .regex(GH_PHONE_NUMBER_REGEX, "Please enter a valid 10-digit number (e.g., 0244123456).")
       .optional(),
-   storeAddress: z.string().trim().min(3, "Store address can not be empty").optional(),
+   storeAddress: z.string().trim().min(3, "Enter a valid address").optional(),
+   storeDescription: z
+      .string()
+      .trim()
+      .min(20, "Store description can not be less than 20")
+      .max(400, "Store description can not be more than 400 chars")
+      .optional(),
+   openHours: z
+      .string()
+      .regex(OPEN_HOURS_REGEX, "Please enter a open hours e.g., Mon - Fri (9am - 5pm).")
+      .optional(),   
 });
 
 export const updateAccountSettingsValidator = clientZodValidator(accountSettingsSchema, "form");

@@ -4,13 +4,14 @@ import { db } from "../../../connection.js";
 
 interface Filters {
    filters: SQL<unknown> | undefined;
+   optionalFilter?: SQL<unknown> | undefined;
    userID: string;
    offset?: number;
    limit?: number;
    main_category?: string;
 }
 
-export const publishedAdsQuery = async ({ userID, limit, offset, filters }: Filters) => {
+export const publishedAdsQuery = async ({ userID, limit, offset, filters, optionalFilter }: Filters) => {
    const data = await db
       .select({
          adsId: AdsTable.ads_id,
@@ -30,7 +31,7 @@ export const publishedAdsQuery = async ({ userID, limit, offset, filters }: Filt
          condition: sql<string>`metadata->>'condition'`,
       })
       .from(AdsTable)
-      .where(and(eq(AdsTable.user_id, userID), filters))
+      .where(and(eq(AdsTable.user_id, userID), filters, optionalFilter))
       .orderBy(desc(AdsTable.updated_at))
       .offset(offset ?? 0)
       .limit(limit ?? 0);
@@ -38,31 +39,31 @@ export const publishedAdsQuery = async ({ userID, limit, offset, filters }: Filt
    return data;
 };
 
-export const countPublishedAds = async ({ userID, filters }: Filters) => {
+export const countPublishedAds = async ({ userID, filters, optionalFilter }: Filters) => {
    const data = await db
       .select({
          ad_count: count(AdsTable.ads_id).as("ad_count"),
       })
       .from(AdsTable)
-      .where(and(eq(AdsTable.user_id, userID), filters));
+      .where(and(eq(AdsTable.user_id, userID), filters, optionalFilter));
 
    return data;
 };
 
-export const mainCategoryCountQuery = async ({ userID, filters }: Filters) => {
+export const mainCategoryCountQuery = async ({ userID, filters, optionalFilter }: Filters) => {
    const main = await db
       .select({
          label: AdsTable.main_category,
          count: count(AdsTable.main_category),
       })
       .from(AdsTable)
-      .where(and(eq(AdsTable.user_id, userID), filters))
+      .where(and(eq(AdsTable.user_id, userID), filters, optionalFilter))
       .groupBy(AdsTable.main_category);
 
    return main;
 };
 
-export const subCategoryCountQuery = async ({ userID, main_category, filters }: Filters) => {
+export const subCategoryCountQuery = async ({ userID, main_category, filters, optionalFilter }: Filters) => {
    if (!main_category) return;
 
    const sub = await db
@@ -71,7 +72,7 @@ export const subCategoryCountQuery = async ({ userID, main_category, filters }: 
          count: count(AdsTable.sub_category),
       })
       .from(AdsTable)
-      .where(and(eq(AdsTable.user_id, userID), filters))
+      .where(and(eq(AdsTable.user_id, userID), filters, optionalFilter))
       .groupBy(AdsTable.sub_category);
 
    return sub;

@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors"
-import userRoute from "./routes/client/user-route.js";
+import userRoute, { COOKIE_DOMAIN } from "./routes/client/user-route.js";
 import regionTownRoute from "./routes/client/region-town-route.js";
 import categoriesRoute from "./routes/client/categories-route.js";
 import { ZodError } from "zod";
@@ -20,6 +20,10 @@ import postMobilePhones from "./routes/client/post-ads/electronics/post-mobile-p
 import mobilePhonesNoAuthCatalog from "./routes/client/categories/electronics/no-auth/no-auth-mobile-phones-route.js";
 import mobileCatalog from "./routes/client/categories/electronics/category-mobile-phones-route.js";
 import trendingNewPost from "./routes/client/trending-new-post-route.js";
+import profile from "./routes/client/profile-route.js";
+import { deleteCookie } from "hono/cookie";
+import globalSearchCatalog from "./routes/client/search/global-search-route.js";
+import suggestionsRoute from "./routes/client/search/suggestion-route.js";
 type Variables = JwtVariables;
 
 const app = new Hono<{ Variables: Variables }>();
@@ -58,11 +62,15 @@ app.route("/api/user", userRoute);
 app.route("/api/auth/session", session);
 app.route("/api/auth/account", account);
 
+//Profile route
+app.route("/api/profile", profile)
+
 //Electronics
 app.route("/api/auth/post/electronics", postMobilePhones);
 app.route("/api/auth/fetch", mobileCatalog);
 app.route("/api/fetch", mobilePhonesNoAuthCatalog);
-
+app.route("/api", globalSearchCatalog)
+app.route("/api", suggestionsRoute)
 // Keep the backend alive
 app.get('/api/health', (c) => {
   return c.json({ status: 'alive' });
@@ -79,7 +87,8 @@ app.onError((err, c) => {
       logger.error(err);
       message ='Please log in to continue.',
       code = CODES.APP.AUTH_TOKEN_INVALID;
-      httpCode = CODES.HTTP.NOT_FOUND;
+      httpCode = CODES.HTTP.UNAUTHORIZED_ACCESS;
+      deleteCookie(c, 'access_token', { path: "/", domain: COOKIE_DOMAIN })
    
   }else if (err instanceof HTTPException) {
       logger.error(err);
