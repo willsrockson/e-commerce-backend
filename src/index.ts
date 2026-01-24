@@ -88,7 +88,7 @@ app.onError((err, c) => {
       message ='Please log in to continue.',
       code = CODES.APP.AUTH_TOKEN_INVALID;
       httpCode = CODES.HTTP.UNAUTHORIZED_ACCESS;
-      deleteCookie(c, 'access_token', { path: "/", domain: COOKIE_DOMAIN })
+      //deleteCookie(c, 'access_token', { path: "/", domain: COOKIE_DOMAIN })
    
   }else if (err instanceof HTTPException) {
       logger.error(err);
