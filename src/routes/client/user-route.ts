@@ -1,173 +1,221 @@
 import { Hono, type Context } from "hono";
-import { emailVerificationValidator, loginValidator, registerValidator } from "../../validators/client/user-validator.js";
+import {
+  emailVerificationValidator,
+  loginValidator,
+  registerValidator,
+} from "../../validators/client/user-validator.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import { db } from "../../database/connection.js";
 import { google } from "../../providers/client/auth.js";
 import type { GoogleOauthUserData } from "../../types/client/types.js";
-import { AvatarTable, UserTable } from "../../database/schema/client/user-schema.js";
+import {
+  AvatarTable,
+  UserTable,
+} from "../../database/schema/client/user-schema.js";
 import { generateCodeVerifier, generateState } from "arctic";
 import { eq, or } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
-import { CODES, ENVIRONMENT, AUTH_JWT_EXPIRY, AUTH_COOKIE_MAX_AGE, EMAIL_SUBJECTS, AUTH_PROVIDER_NAME } from "../../config/constants.js";
+import {
+  CODES,
+  ENVIRONMENT,
+  AUTH_JWT_EXPIRY,
+  AUTH_COOKIE_MAX_AGE,
+  EMAIL_SUBJECTS,
+  AUTH_PROVIDER_NAME,
+} from "../../config/constants.js";
 import bcrypt from "bcryptjs";
-import { SignEmailToken, SignToken } from "../../utils/universal/universal-functions.js";
+import {
+  SignEmailToken,
+  SignToken,
+} from "../../utils/universal/universal-functions.js";
 import { EmailClient } from "../../utils/universal/email-client.js";
 import { VerifyEmailHtml } from "../../utils/universal/html-templates.js";
-import "dotenv/config"
+import "dotenv/config";
 import { createAutoStoreNameSlug } from "../../utils/universal/slug-generator.js";
 
 type CookieData = {
-   c: Context;
-   name: string;
-   data: any;
-   maxAge: number;
+  c: Context;
+  name: string;
+  data: any;
+  maxAge: number;
 };
-
 
 const user = new Hono();
 
-export const COOKIE_DOMAIN = process.env.NODE_ENV === ENVIRONMENT.PROD ? ".tonmame.store" : undefined ;
+export const COOKIE_DOMAIN =
+  process.env.NODE_ENV === ENVIRONMENT.PROD ? ".tonmame.store" : undefined;
 export const isProd = process.env.NODE_ENV === ENVIRONMENT.PROD;
 
-
 const cookieSetter = ({ c, name, data, maxAge }: CookieData) => {
-   setCookie(c, name, data, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
-      maxAge: maxAge,
-      sameSite: isProd ? "None" : "Lax",
-      domain: COOKIE_DOMAIN,
-      path: "/",
-   });
+  setCookie(c, name, data, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === ENVIRONMENT.PROD,
+    maxAge: maxAge,
+    sameSite: isProd ? "Lax" : "Lax",
+    domain: COOKIE_DOMAIN,
+    path: "/",
+  });
 };
 
-user.post('/login', loginValidator, async (c) => {
-    const { emailPhone, password } = c.req.valid('json');
-    const logger = c.get('logger');
+user.post("/login", loginValidator, async (c) => {
+  const { emailPhone, password } = c.req.valid("json");
+  const logger = c.get("logger");
 
-    const user = await db
-       .select({
-          userId: UserTable.user_id,
-          password: UserTable.password,
-          tokenVersion: UserTable.token_version,
-          providerName: UserTable.provider_name,
-          role: UserTable.role,
-       })
-       .from(UserTable)
-       .where(or(eq(UserTable.email, emailPhone), eq(UserTable.phone_primary, emailPhone), eq(UserTable.phone_secondary, emailPhone)));
+  const user = await db
+    .select({
+      userId: UserTable.user_id,
+      password: UserTable.password,
+      tokenVersion: UserTable.token_version,
+      providerName: UserTable.provider_name,
+      role: UserTable.role,
+    })
+    .from(UserTable)
+    .where(
+      or(
+        eq(UserTable.email, emailPhone),
+        eq(UserTable.phone_primary, emailPhone),
+        eq(UserTable.phone_secondary, emailPhone),
+      ),
+    );
 
-    if (user.length === 0 || user[0]?.providerName || !user[0]?.password) {
-       throw new HTTPException(CODES.HTTP.NOT_FOUND, { message: "Invalid credentials." });
-    }
+  if (user.length === 0 || user[0]?.providerName || !user[0]?.password) {
+    throw new HTTPException(CODES.HTTP.NOT_FOUND, {
+      message: "Invalid credentials.",
+    });
+  }
 
-    const isPasswordCorrect = await bcrypt.compare(password, user[0]?.password);
+  const isPasswordCorrect = await bcrypt.compare(password, user[0]?.password);
 
-    if (isPasswordCorrect === false) {
-       throw new HTTPException(CODES.HTTP.BAD_REQUEST, { message: "Invalid credentials." });
-    }
-    // Sign Auth Token
-    const jwtToken = await SignToken({
-       userId: user[0]?.userId,
-       role: user[0]?.role,
-       tokenVersion: user[0]?.tokenVersion,
+  if (isPasswordCorrect === false) {
+    throw new HTTPException(CODES.HTTP.BAD_REQUEST, {
+      message: "Invalid credentials.",
+    });
+  }
+  // Sign Auth Token
+  const jwtToken = await SignToken({
+    userId: user[0]?.userId,
+    role: user[0]?.role,
+    tokenVersion: user[0]?.tokenVersion,
+  });
+
+  cookieSetter({
+    c,
+    name: "access_token",
+    data: jwtToken,
+    maxAge: AUTH_COOKIE_MAX_AGE,
+  });
+
+  logger.info(`${emailPhone}: Logged in successfully.`);
+
+  return c.json({ success: true }, 200);
+});
+
+user.post("/signup", registerValidator, async (c) => {
+  const { email, fullName, password, phonePrimary } = c.req.valid("json");
+  const logger = c.get("logger");
+
+  const checkIfUserExist = await db
+    .select({ userId: UserTable.user_id })
+    .from(UserTable)
+    .where(
+      or(
+        eq(UserTable.email, email),
+        eq(UserTable.phone_primary, phonePrimary),
+        eq(UserTable.phone_secondary, phonePrimary),
+      ),
+    );
+
+  if (checkIfUserExist?.length > 0) {
+    throw new HTTPException(CODES.HTTP.CONFLICT, {
+      message: "User already exist.",
+    });
+  }
+  const salt = await bcrypt.genSalt(Number(process.env.SALT));
+  const hash = await bcrypt.hash(password, salt);
+
+  const storeNameSlug = await createAutoStoreNameSlug(fullName);
+
+  const createUser = await db
+    .insert(UserTable)
+    .values({
+      email: email,
+      full_name: fullName,
+      password: hash,
+      phone_primary: phonePrimary,
+      store_name_slug: storeNameSlug,
+    })
+    .returning({
+      userId: UserTable.user_id,
+      role: UserTable.role,
+      tokenVersion: UserTable.token_version,
     });
 
-    cookieSetter({c, name:"access_token", data:jwtToken, maxAge: AUTH_COOKIE_MAX_AGE})
-    
-    logger.info(`${emailPhone}: Logged in successfully.`);
+  // Sign Auth Token
+  const jwtToken = await SignToken({
+    userId: createUser[0]?.userId,
+    role: createUser[0]?.role,
+    tokenVersion: createUser[0]?.tokenVersion,
+  });
 
-    return c.json({ success: true }, 200);
-})
+  // Sign email verification link
+  const jwtForResendMessages = await SignEmailToken({
+    userId: createUser[0]?.userId,
+    role: createUser[0]?.role,
+  });
 
+  const emailVerificationLink =
+    process.env.NODE_ENV === ENVIRONMENT.PROD
+      ? `${process.env.FRONTEND_PROD_URL}` +
+        `?verify-email=${jwtForResendMessages}`
+      : `${process.env.FRONTEND_DEV_URL}` +
+        `?verify-email=${jwtForResendMessages}`;
 
+  const emailId = await EmailClient(
+    [email],
+    EMAIL_SUBJECTS.VERIFY_EMAIL,
+    VerifyEmailHtml.replace("[Full Name]", fullName.split(" ")[0]).replaceAll(
+      "[Verification Link]",
+      emailVerificationLink,
+    ),
+  );
 
-user.post('/signup', registerValidator, async (c) => {
-    const { email, fullName, password, phonePrimary } = c.req.valid('json');
-    const logger = c.get('logger');
+  cookieSetter({
+    c,
+    name: "access_token",
+    data: jwtToken,
+    maxAge: AUTH_COOKIE_MAX_AGE,
+  });
 
-    const checkIfUserExist = await db
-             .select({ userId: UserTable.user_id})
-             .from(UserTable)
-             .where(or(eq(UserTable.email, email), eq(UserTable.phone_primary, phonePrimary), eq(UserTable.phone_secondary, phonePrimary))
-             );
-         
-    if (checkIfUserExist?.length > 0) {
-           throw new HTTPException(CODES.HTTP.CONFLICT, { message: 'User already exist.'})
-    }
-    const salt = await bcrypt.genSalt(Number(process.env.SALT));
-    const hash = await bcrypt.hash(password, salt);
-
-    const storeNameSlug = await createAutoStoreNameSlug(fullName); 
-
-    const createUser = await db
-       .insert(UserTable)
-       .values({
-          email: email,
-          full_name: fullName,
-          password: hash,
-          phone_primary: phonePrimary,
-          store_name_slug: storeNameSlug
-       })
-       .returning({
-          userId: UserTable.user_id,
-          role: UserTable.role,
-          tokenVersion: UserTable.token_version,
-       });
-
-    // Sign Auth Token
-    const jwtToken = await SignToken({
-       userId: createUser[0]?.userId,
-       role: createUser[0]?.role,
-       tokenVersion: createUser[0]?.tokenVersion,
-    });
-
-    // Sign email verification link
-    const jwtForResendMessages = await SignEmailToken({
-       userId: createUser[0]?.userId,
-       role: createUser[0]?.role,
-    });
-    
-     const emailVerificationLink = process.env.NODE_ENV === ENVIRONMENT.PROD
-          ? `${process.env.FRONTEND_PROD_URL}`+`?verify-email=${jwtForResendMessages}`
-          : `${process.env.FRONTEND_DEV_URL}`+`?verify-email=${jwtForResendMessages}`;
-
-     const emailId = await EmailClient(
-                 [email], 
-                 EMAIL_SUBJECTS.VERIFY_EMAIL,
-                 VerifyEmailHtml.replace("[Full Name]", fullName.split(' ')[0])
-                 .replaceAll("[Verification Link]", emailVerificationLink)
-          );     
-    
-   cookieSetter({c, name:"access_token", data:jwtToken, maxAge: AUTH_COOKIE_MAX_AGE})
-
-    logger.info(`${email}: registered successfully. ${emailId}`)    
-    return c.json({ success: true }, 200);
-})
-
+  logger.info(`${email}: registered successfully. ${emailId}`);
+  return c.json({ success: true }, 200);
+});
 
 // Login with google
 // This route builds the Url for the user login into google.
 //
 user.get("/oauth/login", async (c) => {
-   const state = generateState();
-   const codeVerifier = generateCodeVerifier();
+  const state = generateState();
+  const codeVerifier = generateCodeVerifier();
 
-   const scopes = ["openid", "profile", "email"];
-   const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+  const scopes = ["openid", "profile", "email"];
+  const url = google.createAuthorizationURL(state, codeVerifier, scopes);
 
-   cookieSetter({ c, name: "google_oauth_state", data: state, maxAge: 60 * 10 });
-   cookieSetter({ c, name: "google_code_verifier", data: codeVerifier, maxAge: 60 * 10 });
+  cookieSetter({ c, name: "google_oauth_state", data: state, maxAge: 60 * 10 });
+  cookieSetter({
+    c,
+    name: "google_code_verifier",
+    data: codeVerifier,
+    maxAge: 60 * 10,
+  });
 
-   return c.json({ url: url.toString() }, 200);
+  return c.json({ url: url.toString() }, 200);
 });
-
-
 
 // This is where the users information comes
 // After logging in, Google sends the user data to this route
 //
-user.get('/google/callback', async(c)=> {
+user.get("/google/callback", async (c) => {
   // 1. Get the data Google sent us in the URL
   const url = new URL(c.req.url);
   const code = url.searchParams.get("code"); // The "Ticket"
@@ -180,156 +228,181 @@ user.get('/google/callback', async(c)=> {
   // 3. SECURITY CHECK: Do the states match?
   // If not, someone is trying to hack the login.
   if (!code || !storedState || !storedCodeVerifier || state !== storedState) {
-    throw new HTTPException(CODES.HTTP.BAD_REQUEST, { message: 'Authentication failed'})
+    throw new HTTPException(CODES.HTTP.BAD_REQUEST, {
+      message: "Authentication failed",
+    });
   }
 
   try {
     // 4. THE EXCHANGE: Trade the "Ticket" (code) for the "Wristband" (tokens)
-    const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
-    
-    const googleUserResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken()}`,
-      },
-    });
-    const googleUser = await googleUserResponse.json() as GoogleOauthUserData;
+    const tokens = await google.validateAuthorizationCode(
+      code,
+      storedCodeVerifier,
+    );
 
-    if(!googleUser.email || !googleUser.family_name || !googleUser.given_name || !googleUser.sub) {
-        throw new HTTPException(CODES.HTTP.NOT_FOUND, {message: 'Unauthorized request'} )
+    const googleUserResponse = await fetch(
+      "https://openidconnect.googleapis.com/v1/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${tokens.accessToken()}`,
+        },
+      },
+    );
+    const googleUser = (await googleUserResponse.json()) as GoogleOauthUserData;
+
+    if (
+      !googleUser.email ||
+      !googleUser.family_name ||
+      !googleUser.given_name ||
+      !googleUser.sub
+    ) {
+      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
+        message: "Unauthorized request",
+      });
     }
 
     // ---------------------------------------------------------
-    // You now have the user's details 
+    // You now have the user's details
     // You can proceed to register or log the user in
     // ---------------------------------------------------------
 
     // Check your Database
-     let user;
+    let user;
 
-         user = await db
-         .select({ 
-             userId: UserTable.user_id, 
-             role: UserTable.role ,
-             imageUrl: AvatarTable.image_url,
-             fullName: UserTable.full_name,
-             tokenVersion: UserTable.token_version,
-             updatedAt: AvatarTable.updated_at,
-            })
-         .from(UserTable)
-         .leftJoin(AvatarTable, eq(UserTable.user_id, AvatarTable.user_id))
-         .where(eq(UserTable.email, googleUser?.email));
-    
-    // If user doesn't exist -> Insert them into DB.
-     let myAppToken;
-  
-     if (user.length > 0) {
-       // Login users 
-        myAppToken = await SignToken({
-           userId: user[0]?.userId,
-           role: user[0]?.role,
-           tokenVersion: user[0]?.tokenVersion,
-        });
-
-     }else{
-       // Create user
-       const storeNameSlug = await createAutoStoreNameSlug(googleUser.given_name + " " + googleUser.family_name); 
-        user = await db
-           .insert(UserTable)
-           .values({
-              email: googleUser.email,
-              full_name: googleUser.given_name + " " + googleUser.family_name,
-              provider_id: googleUser.sub,
-              provider_name: AUTH_PROVIDER_NAME.GOOGLE,
-              store_name_slug: storeNameSlug
-           })
-           .returning({
-              userId: UserTable.user_id,
-              role: UserTable.role,
-              fullName: UserTable.full_name,
-              tokenVersion: UserTable.token_version,
-           });
-        
-        myAppToken = await SignToken({
-           userId: user[0]?.userId,
-           role: user[0]?.role,
-           tokenVersion: user[0]?.tokenVersion,
-        });
-      
-     }
-     deleteCookie(c, "google_oauth_state", { path: "/", domain: COOKIE_DOMAIN });
-     deleteCookie(c, "google_code_verifier", { path: "/", domain: COOKIE_DOMAIN });
-
-     cookieSetter({c, name:"access_token", data:myAppToken, maxAge: AUTH_COOKIE_MAX_AGE})
-
-    const redirectUrl = process.env.NODE_ENV === ENVIRONMENT.PROD ? `${process.env.FRONTEND_PROD_URL}` : `${process.env.FRONTEND_DEV_URL}`;
-
-    return c.redirect(redirectUrl, 302)
-
-  } catch (error) {
-    throw error
-  }
-})
-
-
-user.post("/email/verification", emailVerificationValidator, async (c) => {
-   const { verifyEmail } = c.req.valid("json");
-
-   if (!verifyEmail) {
-      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
-         message: "The verification link is invalid or has expired.",
-      });
-   }
-   const payload = await verify(verifyEmail, process.env.EMAIL_JWT_SECRET_KEY!, "HS256") as {
-      userId: string;
-      role: "user" | "moderator" | "superuser";
-   };
-   if (!payload) {
-      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
-         message: "The verification link is invalid or has expired.",
-      });
-   }
-   const user = await db
+    user = await db
       .select({
-         userId: UserTable.user_id,
-         emailVerified: UserTable.email_verified,
+        userId: UserTable.user_id,
+        role: UserTable.role,
+        imageUrl: AvatarTable.image_url,
+        fullName: UserTable.full_name,
+        tokenVersion: UserTable.token_version,
+        updatedAt: AvatarTable.updated_at,
       })
       .from(UserTable)
-      .where(eq(UserTable.user_id, payload.userId));
+      .leftJoin(AvatarTable, eq(UserTable.user_id, AvatarTable.user_id))
+      .where(eq(UserTable.email, googleUser?.email));
 
-   if (user.length === 0) {
-      throw new HTTPException(CODES.HTTP.NOT_FOUND, {
-         message: "Invalid or expired verification link",
+    // If user doesn't exist -> Insert them into DB.
+    let myAppToken;
+
+    if (user.length > 0) {
+      // Login users
+      myAppToken = await SignToken({
+        userId: user[0]?.userId,
+        role: user[0]?.role,
+        tokenVersion: user[0]?.tokenVersion,
       });
-   }
+    } else {
+      // Create user
+      const storeNameSlug = await createAutoStoreNameSlug(
+        googleUser.given_name + " " + googleUser.family_name,
+      );
+      user = await db
+        .insert(UserTable)
+        .values({
+          email: googleUser.email,
+          full_name: googleUser.given_name + " " + googleUser.family_name,
+          provider_id: googleUser.sub,
+          provider_name: AUTH_PROVIDER_NAME.GOOGLE,
+          store_name_slug: storeNameSlug,
+        })
+        .returning({
+          userId: UserTable.user_id,
+          role: UserTable.role,
+          fullName: UserTable.full_name,
+          tokenVersion: UserTable.token_version,
+        });
 
-   let message = "";
-   switch (user[0].emailVerified) {
-      case "unverified":
-         const results = await db
-            .update(UserTable)
-            .set({ email_verified: "verified" })
-            .where(eq(UserTable.user_id, user[0].userId))
-            .returning({ userId: UserTable.user_id });
+      myAppToken = await SignToken({
+        userId: user[0]?.userId,
+        role: user[0]?.role,
+        tokenVersion: user[0]?.tokenVersion,
+      });
+    }
+    deleteCookie(c, "google_oauth_state", { path: "/", domain: COOKIE_DOMAIN });
+    deleteCookie(c, "google_code_verifier", {
+      path: "/",
+      domain: COOKIE_DOMAIN,
+    });
 
-         if (results.length === 0) {
-            throw new HTTPException(CODES.HTTP.NOT_FOUND, {
-               message: "Invalid or expired verification link",
-            });
-         }
-         message = "Your email has been verified.";
-         break;
-      case "verified":
-         message = "Email already verified.";
-         break;
+    cookieSetter({
+      c,
+      name: "access_token",
+      data: myAppToken,
+      maxAge: AUTH_COOKIE_MAX_AGE,
+    });
 
-      default:
-         break;
-   }
+    const redirectUrl =
+      process.env.NODE_ENV === ENVIRONMENT.PROD
+        ? `${process.env.FRONTEND_PROD_URL}`
+        : `${process.env.FRONTEND_DEV_URL}`;
 
-   return c.json({ success: true, message: message });
+    return c.redirect(redirectUrl, 302);
+  } catch (error) {
+    throw error;
+  }
 });
 
+user.post("/email/verification", emailVerificationValidator, async (c) => {
+  const { verifyEmail } = c.req.valid("json");
 
+  if (!verifyEmail) {
+    throw new HTTPException(CODES.HTTP.NOT_FOUND, {
+      message: "The verification link is invalid or has expired.",
+    });
+  }
+  const payload = (await verify(
+    verifyEmail,
+    process.env.EMAIL_JWT_SECRET_KEY!,
+    "HS256",
+  )) as {
+    userId: string;
+    role: "user" | "moderator" | "superuser";
+  };
+  if (!payload) {
+    throw new HTTPException(CODES.HTTP.NOT_FOUND, {
+      message: "The verification link is invalid or has expired.",
+    });
+  }
+  const user = await db
+    .select({
+      userId: UserTable.user_id,
+      emailVerified: UserTable.email_verified,
+    })
+    .from(UserTable)
+    .where(eq(UserTable.user_id, payload.userId));
 
+  if (user.length === 0) {
+    throw new HTTPException(CODES.HTTP.NOT_FOUND, {
+      message: "Invalid or expired verification link",
+    });
+  }
+
+  let message = "";
+  switch (user[0].emailVerified) {
+    case "unverified":
+      const results = await db
+        .update(UserTable)
+        .set({ email_verified: "verified" })
+        .where(eq(UserTable.user_id, user[0].userId))
+        .returning({ userId: UserTable.user_id });
+
+      if (results.length === 0) {
+        throw new HTTPException(CODES.HTTP.NOT_FOUND, {
+          message: "Invalid or expired verification link",
+        });
+      }
+      message = "Your email has been verified.";
+      break;
+    case "verified":
+      message = "Email already verified.";
+      break;
+
+    default:
+      break;
+  }
+
+  return c.json({ success: true, message: message });
+});
 
 export default user;
